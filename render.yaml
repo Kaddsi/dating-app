@@ -1,0 +1,30 @@
+services:
+  - type: web
+    name: premium-dating-api
+    runtime: python
+    plan: free
+    autoDeploy: true
+    buildCommand: pip install -r bot/requirements.txt
+    startCommand: python start_render.py
+    healthCheckPath: /api/health
+    envVars:
+      - key: BOT_TOKEN
+        sync: false
+      - key: DATABASE_URL
+        sync: false
+      - key: RUN_WITHOUT_DB
+        value: "false"
+      - key: API_SECRET_KEY
+        generateValue: true
+      - key: CORS_ALLOW_ORIGINS
+        value: https://premium-dating-api.onrender.com,https://glittery-sorbet-b6593d.netlify.app
+      - key: ENVIRONMENT
+        value: production
+      - key: WEB_APP_URL
+        value: https://premium-dating-api.onrender.com/mini/
+      - key: WEB_API_URL
+        value: https://premium-dating-api.onrender.com
+      - key: API_BASE_URL
+        value: https://premium-dating-api.onrender.com
+      - key: WEB_APP_VERSION
+        value: "2026-03-25-173500"

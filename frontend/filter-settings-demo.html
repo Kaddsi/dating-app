@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Premium Dating - Фильтры поиска</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #312e81 50%, #0f172a 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: white;
+        }
+        
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            margin-bottom: 24px;
+        }
+        
+        .header h1 {
+            font-size: 28px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+        
+        .header p {
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 14px;
+        }
+        
+        .glass-card {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 24px;
+            padding: 24px;
+            margin-bottom: 16px;
+        }
+        
+        .filter-section {
+            margin-bottom: 32px;
+        }
+        
+        .filter-section:last-child {
+            margin-bottom: 0;
+        }
+        
+        .filter-label {
+            display: block;
+            font-weight: 500;
+            margin-bottom: 12px;
+            font-size: 15px;
+        }
+        
+        .button-group {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+        }
+        
+        .filter-btn {
+            padding: 12px 16px;
+            border-radius: 16px;
+            font-weight: 500;
+            font-size: 14px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            background: rgba(255, 255, 255, 0.1);
+            color: rgba(255, 255, 255, 0.7);
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .filter-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+        
+        .filter-btn.active {
+            background: #6366f1;
+            color: white;
+            border-color: #6366f1;
+        }
+        
+        .slider-container {
+            margin-bottom: 16px;
+        }
+        
+        .slider-header {
+            display: flex;
+            justify-content: space-between;
+            font-size: 13px;
+            color: rgba(255, 255, 255, 0.6);
+            margin-bottom: 8px;
+        }
+        
+        .slider {
+            width: 100%;
+            height: 8px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 4px;
+            outline: none;
+            -webkit-appearance: none;
+        }
+        
+        .slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            background: #6366f1;
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(99, 102, 241, 0.4);
+        }
+        
+        .slider::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            background: #6366f1;
+            border-radius: 50%;
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 2px 8px rgba(99, 102, 241, 0.4);
+        }
+        
+        .distance-marks {
+            display: flex;
+            justify-content: space-between;
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.5);
+            margin-top: 8px;
+        }
+        
+        .interests-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        
+        .interest-tag {
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s;
+            background: rgba(255, 255, 255, 0.1);
+            color: rgba(255, 255, 255, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            user-select: none;
+        }
+        
+        .interest-tag:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+        
+        .interest-tag.selected {
+            background: rgba(99, 102, 241, 0.4);
+            color: rgba(199, 210, 254, 1);
+            border: 1px solid rgba(99, 102, 241, 0.5);
+        }
+        
+        .interests-hint {
+            margin-top: 12px;
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 12px;
+            display: none;
+        }
+        
+        .info-card {
+            background: rgba(99, 102, 241, 0.2);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(99, 102, 241, 0.3);
+            border-radius: 16px;
+            padding: 16px;
+            margin-bottom: 20px;
+            display: flex;
+            gap: 12px;
+        }
+        
+        .info-icon {
+            width: 20px;
+            height: 20px;
+            color: rgba(165, 180, 252, 1);
+            flex-shrink: 0;
+            margin-top: 2px;
+        }
+        
+        .info-content p:first-child {
+            color: rgba(199, 210, 254, 1);
+            font-size: 13px;
+            font-weight: 500;
+            margin-bottom: 4px;
+        }
+        
+        .info-content p:last-child {
+            color: rgba(199, 210, 254, 0.8);
+            font-size: 12px;
+            line-height: 1.5;
+        }
+        
+        .save-btn {
+            width: 100%;
+            padding: 16px;
+            background: #6366f1;
+            color: white;
+            border: none;
+            border-radius: 16px;
+            font-weight: 600;
+            font-size: 15px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .save-btn:hover {
+            background: #4f46e5;
+        }
+        
+        .save-btn:active {
+            transform: scale(0.98);
+        }
+        
+        .save-btn.saving {
+            background: rgba(255, 255, 255, 0.2);
+            cursor: not-allowed;
+        }
+        
+        .save-btn.success {
+            background: #10b981;
+        }
+        
+        .stats {
+            text-align: center;
+            margin-top: 20px;
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 13px;
+        }
+        
+        .stats strong {
+            color: #6366f1;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        
+        <!-- Заголовок -->
+        <div class="header">
+            <h1>🎯 Фильтры поиска</h1>
+            <p>Настройте, кого вы хотите видеть</p>
+        </div>
+        
+        <!-- Карточка с настройками -->
+        <div class="glass-card">
+            
+            <!-- 1. Кого ищем -->
+            <div class="filter-section">
+                <label class="filter-label">Кого вы ищете?</label>
+                <div class="button-group">
+                    <button class="filter-btn" id="male-btn" onclick="selectGender('male')">👨 Мужчины</button>
+                    <button class="filter-btn" id="female-btn" onclick="selectGender('female')">👩 Женщины</button>
+                    <button class="filter-btn active" id="everyone-btn" onclick="selectGender('everyone')">👥 Все</button>
+                </div>
+            </div>
+            
+            <!-- 2. Возраст -->
+            <div class="filter-section">
+                <label class="filter-label">Возраст: <span id="age-display">18 - 35 лет</span></label>
+                
+                <div class="slider-container">
+                    <div class="slider-header">
+                        <span>От</span>
+                        <span id="age-min-val">18 лет</span>
+                    </div>
+                    <input type="range" class="slider" id="age-min" min="18" max="80" value="18" oninput="updateAge()">
+                </div>
+                
+                <div class="slider-container">
+                    <div class="slider-header">
+                        <span>До</span>
+                        <span id="age-max-val">35 лет</span>
+                    </div>
+                    <input type="range" class="slider" id="age-max" min="18" max="80" value="35" oninput="updateAge()">
+                </div>
+            </div>
+            
+            <!-- 3. Расстояние -->
+            <div class="filter-section">
+                <label class="filter-label">Максимальное расстояние: <span id="distance-val">50 км</span></label>
+                <input type="range" class="slider" id="distance" min="1" max="200" step="5" value="50" oninput="updateDistance()">
+                <div class="distance-marks">
+                    <span>1 км</span>
+                    <span>50 км</span>
+                    <span>100 км</span>
+                    <span>200 км</span>
+                </div>
+            </div>
+            
+            <!-- 4. Интересы -->
+            <div class="filter-section">
+                <label class="filter-label">Обязательные интересы (необязательно)</label>
+                <div class="interests-grid">
+                    <span class="interest-tag" onclick="toggleInterest(this)">✈️ Путешествия</span>
+                    <span class="interest-tag" onclick="toggleInterest(this)">🏃 Спорт</span>
+                    <span class="interest-tag" onclick="toggleInterest(this)">🎵 Музыка</span>
+                    <span class="interest-tag" onclick="toggleInterest(this)">🎬 Кино</span>
+                    <span class="interest-tag" onclick="toggleInterest(this)">🎨 Искусство</span>
+                    <span class="interest-tag" onclick="toggleInterest(this)">🍳 Кулинария</span>
+                    <span class="interest-tag" onclick="toggleInterest(this)">🧘 Йога</span>
+                    <span class="interest-tag" onclick="toggleInterest(this)">📚 Чтение</span>
+                </div>
+                <p class="interests-hint" id="interests-hint">
+                    Будут показаны только пользователи с этими интересами
+                </p>
+            </div>
+            
+        </div>
+        
+        <!-- Информация -->
+        <div class="info-card">
+            <svg class="info-icon" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+            </svg>
+            <div class="info-content">
+                <p>💡 Умный поиск</p>
+                <p>Система автоматически учитывает взаимные предпочтения. Вы увидите тех, кто тоже подходит под ваши критерии.</p>
+            </div>
+        </div>
+        
+        <!-- Кнопка сохранения -->
+        <button class="save-btn" id="save-btn" onclick="saveFilters()">
+            Сохранить фильтры
+        </button>
+        
+        <!-- Статистика -->
+        <div class="stats">
+            С этими фильтрами доступно <strong>~<span id="profiles-count">247</span> профилей</strong> поблизости
+        </div>
+        
+    </div>
+    
+    <script>
+        let selectedGender = 'everyone';
+        let selectedInterests = [];
+        
+        function selectGender(gender) {
+            selectedGender = gender;
+            document.getElementById('male-btn').classList.remove('active');
+            document.getElementById('female-btn').classList.remove('active');
+            document.getElementById('everyone-btn').classList.remove('active');
+            document.getElementById(gender + '-btn').classList.add('active');
+            updateStats();
+        }
+        
+        function updateAge() {
+            let minAge = parseInt(document.getElementById('age-min').value);
+            let maxAge = parseInt(document.getElementById('age-max').value);
+            
+            // Проверка: минимум не должен быть больше максимума
+            if (minAge > maxAge) {
+                if (event.target.id === 'age-min') {
+                    maxAge = minAge;
+                    document.getElementById('age-max').value = maxAge;
+                } else {
+                    minAge = maxAge;
+                    document.getElementById('age-min').value = minAge;
+                }
+            }
+            
+            document.getElementById('age-min-val').textContent = minAge + ' лет';
+            document.getElementById('age-max-val').textContent = maxAge + ' лет';
+            document.getElementById('age-display').textContent = minAge + ' - ' + maxAge + ' лет';
+            updateStats();
+        }
+        
+        function updateDistance() {
+            const distance = document.getElementById('distance').value;
+            document.getElementById('distance-val').textContent = distance + ' км';
+            updateStats();
+        }
+        
+        function toggleInterest(element) {
+            element.classList.toggle('selected');
+            const text = element.textContent.trim();
+            
+            if (element.classList.contains('selected')) {
+                selectedInterests.push(text);
+            } else {
+                selectedInterests = selectedInterests.filter(i => i !== text);
+            }
+            
+            const hint = document.getElementById('interests-hint');
+            if (selectedInterests.length > 0) {
+                hint.style.display = 'block';
+            } else {
+                hint.style.display = 'none';
+            }
+            
+            updateStats();
+        }
+        
+        function updateStats() {
+            // Имитация подсчёта доступных профилей
+            const baseCount = 400;
+            const ageRange = parseInt(document.getElementById('age-max').value) - 
+                            parseInt(document.getElementById('age-min').value);
+            const distance = parseInt(document.getElementById('distance').value);
+            const genderMultiplier = selectedGender === 'everyone' ? 1 : 0.5;
+            const interestsMultiplier = 1 - (selectedInterests.length * 0.15);
+            
+            const count = Math.round(
+                baseCount * (ageRange / 62) * (distance / 100) * 
+                genderMultiplier * interestsMultiplier
+            );
+            
+            document.getElementById('profiles-count').textContent = Math.max(10, count);
+        }
+        
+        function saveFilters() {
+            const btn = document.getElementById('save-btn');
+            btn.classList.add('saving');
+            btn.textContent = 'Сохранение...';
+            
+            // Имитация отправки на сервер
+            setTimeout(() => {
+                btn.classList.remove('saving');
+                btn.classList.add('success');
+                btn.textContent = '✓ Сохранено!';
+                
+                setTimeout(() => {
+                    btn.classList.remove('success');
+                    btn.textContent = 'Сохранить фильтры';
+                }, 1500);
+            }, 800);
+        }
+        
+        // Инициализация
+        updateAge();
+        updateDistance();
+    </script>
+</body>
+</html>
