@@ -351,7 +351,8 @@ async def startup():
     if RUN_WITHOUT_DB:
         print("⚠️  RUN_WITHOUT_DB=true: Backend API will use mock data (for testing only)")
     else:
-        db_pool = await asyncpg.create_pool(DATABASE_URL, min_size=5, max_size=20)
+        # Keep pool small on free instances to reduce cold-start time.
+        db_pool = await asyncpg.create_pool(DATABASE_URL, min_size=1, max_size=5)
         await _ensure_notification_settings_table(db_pool)
 
 
@@ -479,6 +480,11 @@ async def get_discover_users(
                 AND EXTRACT(YEAR FROM AGE(u.birthdate)) BETWEEN $8 AND $9
                 AND ($4::text = '' OR LOWER(COALESCE(u.country, '')) = LOWER($4))
                 AND ($5::text = '' OR LOWER(COALESCE(u.city, '')) = LOWER($5))
+                AND u.first_name IS NOT NULL AND u.first_name <> ''
+                AND u.birthdate IS NOT NULL
+                AND u.gender IS NOT NULL AND u.gender <> ''
+                AND u.city IS NOT NULL AND u.city <> ''
+                AND u.country IS NOT NULL AND u.country <> ''
                 AND NOT EXISTS (
                     SELECT 1 FROM swipes s
                     WHERE s.from_user_id = $1 AND s.to_user_id = u.id
@@ -525,6 +531,11 @@ async def get_discover_users(
                 AND ($4::text = '' OR LOWER(COALESCE(u.city, '')) = LOWER($4))
                 AND ($5::text = 'everyone' OR LOWER(COALESCE(u.gender, '')) = LOWER($5))
                 AND EXTRACT(YEAR FROM AGE(u.birthdate)) BETWEEN $6 AND $7
+                AND u.first_name IS NOT NULL AND u.first_name <> ''
+                AND u.birthdate IS NOT NULL
+                AND u.gender IS NOT NULL AND u.gender <> ''
+                AND u.city IS NOT NULL AND u.city <> ''
+                AND u.country IS NOT NULL AND u.country <> ''
                 AND NOT EXISTS (
                     SELECT 1 FROM swipes s
                     WHERE s.from_user_id = $1 AND s.to_user_id = u.id
