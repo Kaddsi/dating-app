@@ -590,14 +590,19 @@ async def get_discover_users(
                 u.country,
                 u.gender,
                 EXTRACT(YEAR FROM AGE(u.birthdate)) as age,
-                ST_Distance(u.location::geography, $2::geography) / 1000 as distance
+                CASE
+                    WHEN u.location IS NOT NULL THEN ST_Distance(u.location::geography, $2::geography) / 1000
+                    ELSE NULL::float
+                END as distance
             FROM users u
             WHERE u.id != $1
                 AND u.is_active = TRUE
                 AND u.is_blocked = FALSE
                 AND u.profile_completed = TRUE
-                AND u.location IS NOT NULL
-                AND ST_Distance(u.location::geography, $2::geography) / 1000 <= $6
+                AND (
+                    u.location IS NULL
+                    OR ST_Distance(u.location::geography, $2::geography) / 1000 <= $6
+                )
                 AND ($7::text = 'everyone' OR LOWER(COALESCE(u.gender, '')) = LOWER($7))
                 AND EXTRACT(YEAR FROM AGE(u.birthdate)) BETWEEN $8 AND $9
                 AND ($4::text = '' OR LOWER(COALESCE(u.country, '')) = LOWER($4))
