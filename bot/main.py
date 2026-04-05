@@ -6,7 +6,7 @@ Entry point for the Telegram bot with premium UI and full feature set.
 import asyncio
 import logging
 import os
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from pathlib import Path
 from urllib.parse import urlencode
 from aiogram import Bot, Dispatcher, Router, F
@@ -22,6 +22,8 @@ from aiogram.types import (
     BotCommand,
     MenuButtonCommands,
 )
+from aiogram.fsm.context import FSMContext
+from aiogram.fsm.state import State, StatesGroup
 from aiogram.fsm.storage.memory import MemoryStorage
 import asyncpg
 from dotenv import load_dotenv
@@ -48,12 +50,204 @@ WEB_APP_VERSION = (
 WEB_APP_CACHE_BUSTER = datetime.now(timezone.utc).strftime("%Y%m%d%H%M%S")
 WEB_API_URL = (os.getenv("WEB_API_URL", "") or os.getenv("API_BASE_URL", "")).strip()
 RUN_WITHOUT_DB = os.getenv("RUN_WITHOUT_DB", "false").lower() == "true"
+DB_POOL: asyncpg.Pool | None = None
 
 # In-memory user storage for testing mode
 USER_STORAGE = {}
 
 # Notifications tracking: user_id -> {likes: [], matches: [], messages: []}
 NOTIFICATIONS = {}
+
+CANCEL_WORDS = {"отмена", "cancel", "/cancel"}
+SKIP_WORDS = {"пропустить", "skip", "-"}
+
+
+class ProfileWizard(StatesGroup):
+    first_name = State()
+    age = State()
+    gender = State()
+    country = State()
+    city = State()
+    bio = State()
+    looking_for = State()
+    photo = State()
+
+
+def _api_base_url() -> str:
+    if WEB_API_URL:
+        return WEB_API_URL.rstrip("/")
+    base = WEB_APP_URL.rstrip("/")
+    if base.endswith("/mini"):
+        base = base[:-5]
+    return base
+
+
+def _profile_photo_url(file_id: str) -> str:
+    base = _api_base_url()
+    if base:
+        return f"{base}/api/photos/{file_id}"
+    return f"/api/photos/{file_id}"
+
+
+def _profile_missing_fields(profile: dict) -> list[str]:
+    missing = []
+    if not (profile.get("first_name") or "").strip():
+        missing.append("имя")
+    if not profile.get("birthdate"):
+        missing.append("возраст")
+    if not (profile.get("gender") or "").strip():
+        missing.append("пол")
+    if not (profile.get("country") or "").strip():
+        missing.append("страна")
+    if not (profile.get("city") or "").strip():
+        missing.append("город")
+    if not (profile.get("photos_urls") or []):
+        missing.append("фото")
+    return missing
+
+
+def _profile_complete(profile: dict) -> bool:
+    return len(_profile_missing_fields(profile)) == 0
+
+
+async def get_profile_data(telegram_id: int, fallback_name: str | None = None) -> dict:
+    if RUN_WITHOUT_DB or DB_POOL is None:
+        stored = USER_STORAGE.get(telegram_id, {}).copy()
+        stored.setdefault("telegram_id", telegram_id)
+        stored.setdefault("first_name", fallback_name or stored.get("first_name") or "")
+        stored.setdefault("bio", "")
+        stored.setdefault("gender", "")
+        stored.setdefault("country", "")
+        stored.setdefault("city", "")
+        stored.setdefault("looking_for", "everyone")
+        stored.setdefault("age_min", 18)
+        stored.setdefault("age_max", 99)
+        stored.setdefault("max_distance", 50)
+        stored.setdefault("photos_urls", [])
+        stored.setdefault("primary_photo_url", None)
+        stored["profile_completed"] = _profile_complete(stored)
+        return stored
+
+    async with DB_POOL.acquire() as conn:
+        row = await conn.fetchrow(
+            """
+            SELECT telegram_id, first_name, bio, gender, birthdate, city, country,
+                   looking_for, age_min, age_max, max_distance,
+                   photos_urls, primary_photo_url, profile_completed, is_premium
+            FROM users
+            WHERE telegram_id = $1
+            """,
+            telegram_id,
+        )
+
+    if not row:
+        return {
+            "telegram_id": telegram_id,
+            "first_name": fallback_name or "",
+            "bio": "",
+            "gender": "",
+            "birthdate": None,
+            "city": "",
+            "country": "",
+            "looking_for": "everyone",
+            "age_min": 18,
+            "age_max": 99,
+            "max_distance": 50,
+            "photos_urls": [],
+            "primary_photo_url": None,
+            "profile_completed": False,
+            "is_premium": False,
+        }
+
+    profile = dict(row)
+    profile["photos_urls"] = profile.get("photos_urls") or []
+    profile["profile_completed"] = _profile_complete(profile)
+    return profile
+
+
+async def save_profile_fields(telegram_id: int, **fields) -> dict:
+    if RUN_WITHOUT_DB or DB_POOL is None:
+        stored = USER_STORAGE.setdefault(telegram_id, {})
+        if "age" in fields and fields["age"] is not None:
+            stored["birthdate"] = date(datetime.now(timezone.utc).year - int(fields.pop("age")), 1, 1)
+        stored.update({k: v for k, v in fields.items() if v is not None})
+        stored["profile_completed"] = _profile_complete(stored)
+        return await get_profile_data(telegram_id)
+
+    updates = []
+    args = []
+    index = 1
+    mutable_fields = dict(fields)
+    age = mutable_fields.pop("age", None)
+    if age is not None:
+        mutable_fields["birthdate"] = date(datetime.now(timezone.utc).year - int(age), 1, 1)
+
+    for column, value in mutable_fields.items():
+        updates.append(f"{column} = ${index}")
+        args.append(value)
+        index += 1
+
+    if updates:
+        updates.append(f"updated_at = CURRENT_TIMESTAMP")
+        updates.append(f"last_active = CURRENT_TIMESTAMP")
+        args.append(telegram_id)
+        query = f"UPDATE users SET {', '.join(updates)} WHERE telegram_id = ${index}"
+        async with DB_POOL.acquire() as conn:
+            await conn.execute(query, *args)
+
+    profile = await get_profile_data(telegram_id)
+    async with DB_POOL.acquire() as conn:
+        await conn.execute(
+            "UPDATE users SET profile_completed = $1 WHERE telegram_id = $2",
+            _profile_complete(profile),
+            telegram_id,
+        )
+
+    return await get_profile_data(telegram_id)
+
+
+async def add_profile_photo(telegram_id: int, file_id: str) -> dict:
+    profile = await get_profile_data(telegram_id)
+    photos = list(profile.get("photos_urls") or [])
+    new_url = _profile_photo_url(file_id)
+    if new_url not in photos:
+        photos.append(new_url)
+    photos = photos[:3]
+    primary = photos[0] if photos else None
+    return await save_profile_fields(
+        telegram_id,
+        photos_urls=photos,
+        primary_photo_url=primary,
+    )
+
+
+def format_profile_summary(profile: dict) -> str:
+    birthdate = profile.get("birthdate")
+    age = "-"
+    if birthdate:
+        age = str(datetime.now(timezone.utc).year - birthdate.year)
+
+    photos_count = len(profile.get("photos_urls") or [])
+    missing = _profile_missing_fields(profile)
+    status = "Готова к показу в приложении" if not missing else f"Нужно заполнить: {', '.join(missing)}"
+    looking_for_map = {
+        "male": "мужчин",
+        "female": "женщин",
+        "everyone": "всех",
+    }
+
+    return (
+        "👤 *Ваша анкета*\n\n"
+        f"Имя: {profile.get('first_name') or '-'}\n"
+        f"Возраст: {age}\n"
+        f"Пол: {profile.get('gender') or '-'}\n"
+        f"Страна: {profile.get('country') or '-'}\n"
+        f"Город: {profile.get('city') or '-'}\n"
+        f"Ищу: {looking_for_map.get(profile.get('looking_for'), profile.get('looking_for') or '-')}\n"
+        f"Фото: {photos_count}/3\n"
+        f"О себе: {(profile.get('bio') or '-')}\n\n"
+        f"Статус: *{status}*"
+    )
 
 def init_user_storage(user_id: int):
     """Initialize or get existing user storage."""
@@ -426,24 +620,61 @@ def get_matches_keyboard(lang: str = "en") -> InlineKeyboardMarkup:
 
 
 def get_profile_keyboard(lang: str = "en") -> InlineKeyboardMarkup:
-    """Profile menu with WebApp button"""
+    """Profile menu with bot editing and app preview."""
     labels = BUTTON_TEXTS.get(lang, BUTTON_TEXTS["en"])
+    buttons = [
+        [InlineKeyboardButton(text=labels["edit_profile"], callback_data="profile_edit_bot")],
+    ]
     if webapp_https_ready():
-        open_button = InlineKeyboardButton(
-            text=labels["edit_profile"],
+        buttons.append([InlineKeyboardButton(
+            text=labels["open"],
             web_app=WebAppInfo(url=build_webapp_url("profile", lang)),
-        )
+        )])
     else:
-        open_button = InlineKeyboardButton(
+        buttons.append([InlineKeyboardButton(
             text=labels["open_setup"],
             callback_data="webapp_setup",
-        )
+        )])
 
-    buttons = [
-        [open_button],
+    buttons.extend([
         [InlineKeyboardButton(text=labels["back"], callback_data="menu_back")],
-    ]
+    ])
     return InlineKeyboardMarkup(inline_keyboard=buttons)
+
+
+def get_gender_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(text="🙋 Мужчина", callback_data="profile_gender_male"),
+                InlineKeyboardButton(text="🙋‍♀️ Женщина", callback_data="profile_gender_female"),
+            ],
+            [InlineKeyboardButton(text="🌀 Другое", callback_data="profile_gender_other")],
+            [InlineKeyboardButton(text="✖️ Отмена", callback_data="profile_cancel")],
+        ]
+    )
+
+
+def get_looking_for_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(text="👨 Мужчин", callback_data="profile_looking_male"),
+                InlineKeyboardButton(text="👩 Женщин", callback_data="profile_looking_female"),
+            ],
+            [InlineKeyboardButton(text="🌍 Всех", callback_data="profile_looking_everyone")],
+            [InlineKeyboardButton(text="✖️ Отмена", callback_data="profile_cancel")],
+        ]
+    )
+
+
+def get_photo_step_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text="✅ Готово", callback_data="profile_photo_done")],
+            [InlineKeyboardButton(text="✖️ Отмена", callback_data="profile_cancel")],
+        ]
+    )
 
 
 def get_settings_keyboard(lang: str = "en") -> InlineKeyboardMarkup:
@@ -554,8 +785,9 @@ async def cmd_profile(message: Message, user_db: dict | None = None):
         await message.answer(UI_TEXTS[lang]["verify_required"])
         return
 
+    profile = await get_profile_data(user_id, message.from_user.first_name)
     await message.answer(
-        UI_TEXTS[lang]["profile"].format(name=message.from_user.first_name or "Guest"),
+        format_profile_summary(profile),
         parse_mode="Markdown",
         reply_markup=get_profile_keyboard(lang)
     )
@@ -723,12 +955,198 @@ async def menu_profile(query: CallbackQuery, user_db: dict | None = None):
         await query.answer(UI_TEXTS[lang]["verify_required"], show_alert=True)
         return
 
+    profile = await get_profile_data(user_id, query.from_user.first_name)
     await query.message.edit_text(
-        UI_TEXTS[lang]["profile"].format(name=user_db.get("first_name", "Guest")),
+        format_profile_summary(profile),
         parse_mode="Markdown",
         reply_markup=get_profile_keyboard(lang)
     )
     await query.answer()
+
+
+@router.callback_query(F.data == "profile_edit_bot")
+async def profile_edit_bot(query: CallbackQuery, state: FSMContext, user_db: dict | None = None):
+    lang = get_user_lang(query.from_user.id, query.from_user.language_code)
+    if not user_db:
+        await query.answer(UI_TEXTS[lang]["verify_required"], show_alert=True)
+        return
+
+    profile = await get_profile_data(query.from_user.id, query.from_user.first_name)
+    await state.clear()
+    await state.set_state(ProfileWizard.first_name)
+    await query.message.answer(
+        "✏️ Начинаем редактирование анкеты в боте.\n\n"
+        f"Текущее имя: {profile.get('first_name') or '-'}\n"
+        "Отправьте новое имя одним сообщением.\n"
+        "Для отмены напишите: Отмена",
+        parse_mode="Markdown",
+    )
+    await query.answer()
+
+
+@router.callback_query(F.data == "profile_cancel")
+async def profile_cancel(query: CallbackQuery, state: FSMContext):
+    await state.clear()
+    profile = await get_profile_data(query.from_user.id, query.from_user.first_name)
+    lang = get_user_lang(query.from_user.id, query.from_user.language_code)
+    await query.message.answer(
+        format_profile_summary(profile),
+        parse_mode="Markdown",
+        reply_markup=get_profile_keyboard(lang),
+    )
+    await query.answer("Редактирование отменено")
+
+
+@router.message(ProfileWizard.first_name)
+async def profile_first_name_step(message: Message, state: FSMContext):
+    text = (message.text or "").strip()
+    if text.lower() in CANCEL_WORDS:
+        await state.clear()
+        await cmd_profile(message, user_db={"telegram_id": message.from_user.id})
+        return
+    if len(text) < 2:
+        await message.answer("Имя слишком короткое. Отправьте нормальное имя.")
+        return
+
+    await save_profile_fields(message.from_user.id, first_name=text)
+    await state.set_state(ProfileWizard.age)
+    await message.answer("Сколько вам лет? Отправьте число от 18 до 80.")
+
+
+@router.message(ProfileWizard.age)
+async def profile_age_step(message: Message, state: FSMContext):
+    text = (message.text or "").strip()
+    if text.lower() in CANCEL_WORDS:
+        await state.clear()
+        await cmd_profile(message, user_db={"telegram_id": message.from_user.id})
+        return
+    if not text.isdigit():
+        await message.answer("Возраст должен быть числом от 18 до 80.")
+        return
+
+    age = int(text)
+    if age < 18 or age > 80:
+        await message.answer("Возраст должен быть в диапазоне от 18 до 80.")
+        return
+
+    await save_profile_fields(message.from_user.id, age=age)
+    await state.set_state(ProfileWizard.gender)
+    await message.answer("Выберите ваш пол:", reply_markup=get_gender_keyboard())
+
+
+@router.callback_query(ProfileWizard.gender, F.data.startswith("profile_gender_"))
+async def profile_gender_step(query: CallbackQuery, state: FSMContext):
+    gender = (query.data or "").replace("profile_gender_", "", 1)
+    await save_profile_fields(query.from_user.id, gender=gender)
+    await state.set_state(ProfileWizard.country)
+    await query.message.answer("Укажите страну проживания.")
+    await query.answer()
+
+
+@router.message(ProfileWizard.country)
+async def profile_country_step(message: Message, state: FSMContext):
+    text = (message.text or "").strip()
+    if text.lower() in CANCEL_WORDS:
+        await state.clear()
+        await cmd_profile(message, user_db={"telegram_id": message.from_user.id})
+        return
+    if len(text) < 2:
+        await message.answer("Введите страну текстом, например: Украина.")
+        return
+
+    await save_profile_fields(message.from_user.id, country=text)
+    await state.set_state(ProfileWizard.city)
+    await message.answer("Укажите ваш город.")
+
+
+@router.message(ProfileWizard.city)
+async def profile_city_step(message: Message, state: FSMContext):
+    text = (message.text or "").strip()
+    if text.lower() in CANCEL_WORDS:
+        await state.clear()
+        await cmd_profile(message, user_db={"telegram_id": message.from_user.id})
+        return
+    if len(text) < 2:
+        await message.answer("Введите город текстом, например: Днепр.")
+        return
+
+    await save_profile_fields(message.from_user.id, city=text)
+    await state.set_state(ProfileWizard.bio)
+    await message.answer("Напишите коротко о себе. Можно написать Пропустить.")
+
+
+@router.message(ProfileWizard.bio)
+async def profile_bio_step(message: Message, state: FSMContext):
+    text = (message.text or "").strip()
+    if text.lower() in CANCEL_WORDS:
+        await state.clear()
+        await cmd_profile(message, user_db={"telegram_id": message.from_user.id})
+        return
+
+    bio = "" if text.lower() in SKIP_WORDS else text[:400]
+    await save_profile_fields(message.from_user.id, bio=bio)
+    await state.set_state(ProfileWizard.looking_for)
+    await message.answer("Кого вы хотите видеть в поиске?", reply_markup=get_looking_for_keyboard())
+
+
+@router.callback_query(ProfileWizard.looking_for, F.data.startswith("profile_looking_"))
+async def profile_looking_for_step(query: CallbackQuery, state: FSMContext):
+    looking_for = (query.data or "").replace("profile_looking_", "", 1)
+    await save_profile_fields(query.from_user.id, looking_for=looking_for)
+    await state.set_state(ProfileWizard.photo)
+    await query.message.answer(
+        "📸 Теперь отправьте фото для анкеты.\n"
+        "Можно отправить до 3 фото. Когда закончите, нажмите Готово.",
+        reply_markup=get_photo_step_keyboard(),
+    )
+    await query.answer()
+
+
+@router.message(ProfileWizard.photo, F.photo)
+async def profile_photo_step(message: Message, state: FSMContext):
+    photo = message.photo[-1]
+    profile = await add_profile_photo(message.from_user.id, photo.file_id)
+    count = len(profile.get("photos_urls") or [])
+    await message.answer(
+        f"Фото сохранено. Сейчас в анкете: {count}/3.\n"
+        "Можете отправить ещё фото или нажать Готово.",
+        reply_markup=get_photo_step_keyboard(),
+    )
+
+
+@router.callback_query(ProfileWizard.photo, F.data == "profile_photo_done")
+async def profile_photo_done(query: CallbackQuery, state: FSMContext):
+    await state.clear()
+    profile = await get_profile_data(query.from_user.id, query.from_user.first_name)
+    lang = get_user_lang(query.from_user.id, query.from_user.language_code)
+    await query.message.answer(
+        "✅ Анкета обновлена. Она будет показана в mini app, когда заполнены обязательные поля и есть фото.\n\n"
+        + format_profile_summary(profile),
+        parse_mode="Markdown",
+        reply_markup=get_profile_keyboard(lang),
+    )
+    await query.answer("Анкета сохранена")
+
+
+@router.message(ProfileWizard.photo)
+async def profile_photo_fallback(message: Message, state: FSMContext):
+    text = (message.text or "").strip().lower()
+    if text in CANCEL_WORDS:
+        await state.clear()
+        await cmd_profile(message, user_db={"telegram_id": message.from_user.id})
+        return
+    if text in SKIP_WORDS:
+        await state.clear()
+        profile = await get_profile_data(message.from_user.id, message.from_user.first_name)
+        lang = get_user_lang(message.from_user.id, message.from_user.language_code)
+        await message.answer(
+            "Фото пока не добавлены. Без фото анкета не появится в поиске.\n\n" + format_profile_summary(profile),
+            parse_mode="Markdown",
+            reply_markup=get_profile_keyboard(lang),
+        )
+        return
+
+    await message.answer("Отправьте именно фото как изображение Telegram или нажмите Готово.", reply_markup=get_photo_step_keyboard())
 
 
 @router.callback_query(F.data == "menu_settings")
@@ -903,6 +1321,8 @@ async def main():
     """
     Main bot initialization and startup.
     """
+    global DB_POOL
+
     if not BOT_TOKEN:
         raise RuntimeError("BOT_TOKEN is not set. Please add it to your .env file.")
 
@@ -929,6 +1349,7 @@ async def main():
     else:
         logger.info("Connecting to database...")
         db_pool = await create_db_pool()
+        DB_POOL = db_pool
         logger.info("Database connected!")
     
     # Register middleware for both messages and inline callbacks

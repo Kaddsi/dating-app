@@ -69,8 +69,26 @@ mock_profiles: dict[int, dict[str, Any]] = {}
 mock_swipes: dict[tuple[int, int], str] = {}
 mock_matches: dict[tuple[int, int], dict[str, Any]] = {}
 mock_messages: dict[int, list[dict[str, Any]]] = {}
+mock_room_messages: dict[str, list[dict[str, Any]]] = defaultdict(list)
 mock_next_match_id = 1
 mock_next_message_id = 1
+mock_next_room_message_id = 1
+
+GAMING_ROOMS: dict[str, dict[str, str]] = {
+    "dota2": {
+        "title": "Dota 2",
+        "description": "Ищите тиммейтов, собирайте стак и обсуждайте катки без токсика.",
+    },
+    "cs2": {
+        "title": "CS2",
+        "description": "Собирайте пати, зовите на премьер и общайтесь по игре в дружелюбной атмосфере.",
+    },
+}
+
+PROFANITY_MARKERS = {
+    "бля", "бляд", "хуй", "хуе", "пизд", "еба", "ебл", "сука", "мраз", "нах", "пошел нах",
+    "fuck", "fck", "shit", "bitch", "cunt", "motherf",
+}
 
 
 def _now_iso() -> str:
@@ -87,6 +105,23 @@ def _mock_match_contains(match_row: dict[str, Any], user_id: int) -> bool:
 
 def _mock_other_user(match_row: dict[str, Any], user_id: int) -> int:
     return int(match_row['user2_id']) if int(match_row['user1_id']) == int(user_id) else int(match_row['user1_id'])
+
+
+def _normalize_text(text: str) -> str:
+    return "".join(ch.lower() if ch.isalnum() or ch.isspace() else " " for ch in text)
+
+
+def _contains_profanity(text: str) -> bool:
+    normalized = _normalize_text(text)
+    squashed = normalized.replace(" ", "")
+    return any(marker in normalized or marker.replace(" ", "") in squashed for marker in PROFANITY_MARKERS)
+
+
+def _get_room_info(room_slug: str) -> dict[str, str]:
+    room = GAMING_ROOMS.get(room_slug)
+    if not room:
+        raise HTTPException(status_code=404, detail="Room not found")
+    return room
 
 
 # Models
@@ -115,6 +150,34 @@ class DirectMessageCreateRequest(BaseModel):
     target_user_id: int
     content: str
     message_type: str = "text"
+
+
+class GamingRoomMessageCreateRequest(BaseModel):
+    content: str
+
+
+class GamingRoomMessageItem(BaseModel):
+    id: int
+    room_slug: str
+    sender_name: str
+    content: str
+    created_at: str
+    is_own: bool = False
+
+
+class GamingRoomMessagesResponse(BaseModel):
+    items: list[GamingRoomMessageItem]
+
+
+class GamingRoomInfo(BaseModel):
+    slug: str
+    title: str
+    description: str
+    online_count: int = 0
+
+
+class GamingRoomsResponse(BaseModel):
+    items: list[GamingRoomInfo]
 
 
 class NotificationSummary(BaseModel):
@@ -262,6 +325,26 @@ async def _ensure_notification_settings_table(pool: asyncpg.Pool | None) -> None
         )
 
 
+async def _ensure_gaming_rooms_table(pool: asyncpg.Pool | None) -> None:
+    if RUN_WITHOUT_DB or pool is None:
+        return
+    async with pool.acquire() as conn:
+        await conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS gaming_room_messages (
+                id SERIAL PRIMARY KEY,
+                room_slug VARCHAR(20) NOT NULL CHECK (room_slug IN ('dota2', 'cs2')),
+                user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                content TEXT NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+            """
+        )
+        await conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_gaming_room_messages_room_created ON gaming_room_messages(room_slug, created_at DESC)"
+        )
+
+
 async def _is_notification_enabled(conn: asyncpg.Connection, user_id: int, kind: str) -> bool:
     row = await conn.fetchrow(
         "SELECT like_enabled, match_enabled, message_enabled FROM notification_settings WHERE user_id = $1",
@@ -399,6 +482,7 @@ async def startup():
         # Keep pool small on free instances to reduce cold-start time.
         db_pool = await asyncpg.create_pool(DATABASE_URL, min_size=1, max_size=5)
         await _ensure_notification_settings_table(db_pool)
+        await _ensure_gaming_rooms_table(db_pool)
 
 
 @app.on_event("shutdown")
@@ -854,6 +938,8 @@ async def create_message(
     """Create message in a match and notify receiver in Telegram."""
     if not payload.content.strip():
         raise HTTPException(status_code=400, detail="Message content is empty")
+    if _contains_profanity(payload.content):
+        raise HTTPException(status_code=400, detail="Please keep the chat respectful")
 
     _check_rate_limit(current_user['id'], "messages", limit=120, window_sec=60)
 
@@ -959,6 +1045,8 @@ async def create_direct_message(
     """Create message by target user id (helper for mini-app match popup)."""
     if not payload.content.strip():
         raise HTTPException(status_code=400, detail="Message content is empty")
+    if _contains_profanity(payload.content):
+        raise HTTPException(status_code=400, detail="Please keep the chat respectful")
 
     if payload.target_user_id == current_user['id']:
         raise HTTPException(status_code=400, detail="Cannot message yourself")
@@ -1052,6 +1140,164 @@ async def create_direct_message(
     payload_resp = {"id": int(inserted['id']), "created_at": str(inserted['created_at'])}
     if idem_key:
         _idempotency_set(current_user['id'], f"msgdirect:{idem_key}", payload_resp)
+    return MessageCreateResponse(**payload_resp)
+
+
+@app.get("/api/gaming/rooms", response_model=GamingRoomsResponse)
+async def get_gaming_rooms(
+    current_user: dict = Depends(get_current_user),
+    pool: asyncpg.Pool = Depends(get_db_pool),
+):
+    if RUN_WITHOUT_DB or pool is None:
+        items = [
+            GamingRoomInfo(
+                slug=slug,
+                title=room["title"],
+                description=room["description"],
+                online_count=len(mock_room_messages.get(slug, [])),
+            )
+            for slug, room in GAMING_ROOMS.items()
+        ]
+        return GamingRoomsResponse(items=items)
+
+    async with pool.acquire() as conn:
+        rows = await conn.fetch(
+            """
+            SELECT room_slug, COUNT(*)::int AS messages_count
+            FROM gaming_room_messages
+            GROUP BY room_slug
+            """
+        )
+    counts = {r["room_slug"]: int(r["messages_count"] or 0) for r in rows}
+    items = [
+        GamingRoomInfo(
+            slug=slug,
+            title=room["title"],
+            description=room["description"],
+            online_count=counts.get(slug, 0),
+        )
+        for slug, room in GAMING_ROOMS.items()
+    ]
+    return GamingRoomsResponse(items=items)
+
+
+@app.get("/api/gaming/rooms/{room_slug}/messages", response_model=GamingRoomMessagesResponse)
+async def get_gaming_room_messages(
+    room_slug: str,
+    limit: int = 100,
+    current_user: dict = Depends(get_current_user),
+    pool: asyncpg.Pool = Depends(get_db_pool),
+):
+    room = _get_room_info(room_slug)
+    safe_limit = max(1, min(limit, 200))
+    welcome = GamingRoomMessageItem(
+        id=0,
+        room_slug=room_slug,
+        sender_name="Система",
+        content=f"Добро пожаловать в {room['title']}. Здесь ищут пати, обсуждают игру и общаются уважительно. Без мата, без токсика, с уважением к каждому.",
+        created_at=_now_iso(),
+        is_own=False,
+    )
+
+    if RUN_WITHOUT_DB or pool is None:
+        raw_items = mock_room_messages.get(room_slug, [])[-safe_limit:]
+        items = [welcome] + [
+            GamingRoomMessageItem(
+                id=int(item["id"]),
+                room_slug=room_slug,
+                sender_name=item.get("sender_name") or "User",
+                content=item.get("content") or "",
+                created_at=str(item.get("created_at")),
+                is_own=int(item.get("user_id", 0)) == int(current_user["id"]),
+            )
+            for item in raw_items
+        ]
+        return GamingRoomMessagesResponse(items=items)
+
+    async with pool.acquire() as conn:
+        rows = await conn.fetch(
+            """
+            SELECT gm.id, gm.room_slug, gm.content, gm.created_at, gm.user_id, u.first_name
+            FROM gaming_room_messages gm
+            JOIN users u ON u.id = gm.user_id
+            WHERE gm.room_slug = $1
+            ORDER BY gm.id DESC
+            LIMIT $2
+            """,
+            room_slug,
+            safe_limit,
+        )
+
+    items = [welcome] + [
+        GamingRoomMessageItem(
+            id=int(r["id"]),
+            room_slug=r["room_slug"],
+            sender_name=r["first_name"] or "User",
+            content=r["content"],
+            created_at=str(r["created_at"]),
+            is_own=int(r["user_id"]) == int(current_user["id"]),
+        )
+        for r in reversed(rows)
+    ]
+    return GamingRoomMessagesResponse(items=items)
+
+
+@app.post("/api/gaming/rooms/{room_slug}/messages", response_model=MessageCreateResponse)
+async def create_gaming_room_message(
+    room_slug: str,
+    payload: GamingRoomMessageCreateRequest,
+    request: Request,
+    current_user: dict = Depends(get_current_user),
+    pool: asyncpg.Pool = Depends(get_db_pool),
+):
+    _get_room_info(room_slug)
+    content = payload.content.strip()
+    if not content:
+        raise HTTPException(status_code=400, detail="Message content is empty")
+    if _contains_profanity(content):
+        raise HTTPException(status_code=400, detail="Please keep the chat respectful")
+
+    _check_rate_limit(current_user['id'], f"gaming:{room_slug}", limit=40, window_sec=60)
+    idem_key = (request.headers.get("Idempotency-Key") or "").strip()
+    if idem_key:
+        cached = _idempotency_get(current_user['id'], f"gaming:{room_slug}:{idem_key}")
+        if cached is not None:
+            return JSONResponse(content=cached)
+
+    if RUN_WITHOUT_DB or pool is None:
+        global mock_next_room_message_id
+        created_at = _now_iso()
+        mock_room_messages[room_slug].append(
+            {
+                "id": mock_next_room_message_id,
+                "room_slug": room_slug,
+                "user_id": int(current_user["id"]),
+                "sender_name": current_user.get("first_name") or "User",
+                "content": content,
+                "created_at": created_at,
+            }
+        )
+        payload_resp = {"id": mock_next_room_message_id, "created_at": created_at}
+        mock_next_room_message_id += 1
+        if idem_key:
+            _idempotency_set(current_user['id'], f"gaming:{room_slug}:{idem_key}", payload_resp)
+        return MessageCreateResponse(**payload_resp)
+
+    async with pool.acquire() as conn:
+        inserted = await conn.fetchrow(
+            """
+            INSERT INTO gaming_room_messages (room_slug, user_id, content)
+            VALUES ($1, $2, $3)
+            RETURNING id, created_at
+            """,
+            room_slug,
+            current_user["id"],
+            content,
+        )
+
+    payload_resp = {"id": int(inserted["id"]), "created_at": str(inserted["created_at"])}
+    if idem_key:
+        _idempotency_set(current_user['id'], f"gaming:{room_slug}:{idem_key}", payload_resp)
     return MessageCreateResponse(**payload_resp)
 
 
