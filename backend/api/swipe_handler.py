@@ -537,12 +537,13 @@ async def get_discover_users(
         print(f"🔍 Discovering for user {current_user['id']}")
         candidate_users = []
         for user_id, profile in mock_profiles.items():
-            print(f"  Checking user {user_id}: completed={profile.get('profile_completed')}")
+            print(f"  Checking user {user_id}: name={profile.get('first_name')}")
             if user_id == int(current_user['id']):
                 print(f"    ❌ Skip: same user")
                 continue
-            if not profile.get('profile_completed'):
-                print(f"    ❌ Skip: profile not completed")
+            # In demo mode, only require a name (not profile_completed)
+            if not (profile.get('first_name') or '').strip():
+                print(f"    ❌ Skip: no name")
                 continue
             if looking_for != 'everyone' and (profile.get('gender') or '').strip().lower() != looking_for:
                 print(f"    ❌ Skip: gender mismatch")
@@ -555,6 +556,7 @@ async def get_discover_users(
                     "age": 25,
                     "bio": profile.get('bio') or "",
                     "photos_urls": profile.get('photos_urls') or [],
+                                    "primary_photo_url": profile.get('primary_photo_url'),
                     "interests": ["💬 Chat"],
                     "city": profile.get('city') or '',
                     "country": profile.get('country') or '',
