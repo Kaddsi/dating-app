@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import asyncio
 import json
+import mimetypes
 import os
 import time
 import hashlib
@@ -10,14 +12,15 @@ import hmac
 from datetime import datetime, timezone
 from collections import defaultdict
 from pathlib import Path
-from urllib.parse import parse_qs
+from urllib.parse import parse_qs, quote
+from urllib.request import urlopen
 
 import asyncpg
 from aiogram import Bot
 from dotenv import load_dotenv
 from fastapi import Depends, FastAPI, Header, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from typing import Any, Optional
@@ -66,8 +69,26 @@ mock_profiles: dict[int, dict[str, Any]] = {}
 mock_swipes: dict[tuple[int, int], str] = {}
 mock_matches: dict[tuple[int, int], dict[str, Any]] = {}
 mock_messages: dict[int, list[dict[str, Any]]] = {}
+mock_room_messages: dict[str, list[dict[str, Any]]] = defaultdict(list)
 mock_next_match_id = 1
 mock_next_message_id = 1
+mock_next_room_message_id = 1
+
+GAMING_ROOMS: dict[str, dict[str, str]] = {
+    "dota2": {
+        "title": "Dota 2",
+        "description": "Ищите тиммейтов, собирайте стак и обсуждайте катки без токсика.",
+    },
+    "cs2": {
+        "title": "CS2",
+        "description": "Собирайте пати, зовите на премьер и общайтесь по игре в дружелюбной атмосфере.",
+    },
+}
+
+PROFANITY_MARKERS = {
+    "бля", "бляд", "хуй", "хуе", "пизд", "еба", "ебл", "сука", "мраз", "нах", "пошел нах",
+    "fuck", "fck", "shit", "bitch", "cunt", "motherf",
+}
 
 
 def _now_iso() -> str:
@@ -84,6 +105,23 @@ def _mock_match_contains(match_row: dict[str, Any], user_id: int) -> bool:
 
 def _mock_other_user(match_row: dict[str, Any], user_id: int) -> int:
     return int(match_row['user2_id']) if int(match_row['user1_id']) == int(user_id) else int(match_row['user1_id'])
+
+
+def _normalize_text(text: str) -> str:
+    return "".join(ch.lower() if ch.isalnum() or ch.isspace() else " " for ch in text)
+
+
+def _contains_profanity(text: str) -> bool:
+    normalized = _normalize_text(text)
+    squashed = normalized.replace(" ", "")
+    return any(marker in normalized or marker.replace(" ", "") in squashed for marker in PROFANITY_MARKERS)
+
+
+def _get_room_info(room_slug: str) -> dict[str, str]:
+    room = GAMING_ROOMS.get(room_slug)
+    if not room:
+        raise HTTPException(status_code=404, detail="Room not found")
+    return room
 
 
 # Models
@@ -112,6 +150,34 @@ class DirectMessageCreateRequest(BaseModel):
     target_user_id: int
     content: str
     message_type: str = "text"
+
+
+class GamingRoomMessageCreateRequest(BaseModel):
+    content: str
+
+
+class GamingRoomMessageItem(BaseModel):
+    id: int
+    room_slug: str
+    sender_name: str
+    content: str
+    created_at: str
+    is_own: bool = False
+
+
+class GamingRoomMessagesResponse(BaseModel):
+    items: list[GamingRoomMessageItem]
+
+
+class GamingRoomInfo(BaseModel):
+    slug: str
+    title: str
+    description: str
+    online_count: int = 0
+
+
+class GamingRoomsResponse(BaseModel):
+    items: list[GamingRoomInfo]
 
 
 class NotificationSummary(BaseModel):
@@ -156,6 +222,12 @@ class ProfileUpdateRequest(BaseModel):
     city: Optional[str] = None
     country: Optional[str] = None
     gender: Optional[str] = None
+    looking_for: Optional[str] = None
+    age_min: Optional[int] = None
+    age_max: Optional[int] = None
+    max_distance: Optional[int] = None
+    photos_urls: Optional[list[str]] = None
+    primary_photo_url: Optional[str] = None
     is_premium: Optional[bool] = None
 
 
@@ -188,6 +260,42 @@ def _check_rate_limit(user_id: int, key: str, limit: int, window_sec: int) -> No
     bucket.append(now)
 
 
+def _profile_is_complete(profile: dict[str, Any]) -> bool:
+    photos = profile.get("photos_urls") or []
+    return bool(
+        (profile.get("first_name") or "").strip()
+        and profile.get("birthdate")
+        and (profile.get("gender") or "").strip()
+        and (profile.get("city") or "").strip()
+        and (profile.get("country") or "").strip()
+        and len(photos) > 0
+    )
+
+
+def _download_telegram_photo(file_id: str) -> tuple[bytes, str]:
+    if not BOT_TOKEN:
+        raise RuntimeError("BOT_TOKEN is not configured")
+
+    meta_url = f"https://api.telegram.org/bot{BOT_TOKEN}/getFile?file_id={quote(file_id, safe='')}"
+    with urlopen(meta_url, timeout=15) as meta_response:
+        meta_payload = json.loads(meta_response.read().decode("utf-8"))
+
+    file_path = ((meta_payload or {}).get("result") or {}).get("file_path")
+    if not file_path:
+        raise FileNotFoundError("Telegram file not found")
+
+    download_url = f"https://api.telegram.org/file/bot{BOT_TOKEN}/{file_path}"
+    with urlopen(download_url, timeout=20) as file_response:
+        content = file_response.read()
+        media_type = file_response.info().get_content_type() or "application/octet-stream"
+
+    if media_type == "application/octet-stream":
+        guessed, _ = mimetypes.guess_type(file_path)
+        media_type = guessed or media_type
+
+    return content, media_type
+
+
 def _idempotency_get(user_id: int, idem_key: str) -> Optional[dict[str, Any]]:
     _cleanup_idempotency_cache()
     cached = idempotency_cache.get((user_id, idem_key))
@@ -214,6 +322,26 @@ async def _ensure_notification_settings_table(pool: asyncpg.Pool | None) -> None
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
             """
+        )
+
+
+async def _ensure_gaming_rooms_table(pool: asyncpg.Pool | None) -> None:
+    if RUN_WITHOUT_DB or pool is None:
+        return
+    async with pool.acquire() as conn:
+        await conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS gaming_room_messages (
+                id SERIAL PRIMARY KEY,
+                room_slug VARCHAR(20) NOT NULL CHECK (room_slug IN ('dota2', 'cs2')),
+                user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                content TEXT NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+            """
+        )
+        await conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_gaming_room_messages_room_created ON gaming_room_messages(room_slug, created_at DESC)"
         )
 
 
@@ -351,8 +479,10 @@ async def startup():
     if RUN_WITHOUT_DB:
         print("⚠️  RUN_WITHOUT_DB=true: Backend API will use mock data (for testing only)")
     else:
-        db_pool = await asyncpg.create_pool(DATABASE_URL, min_size=5, max_size=20)
+        # Keep pool small on free instances to reduce cold-start time.
+        db_pool = await asyncpg.create_pool(DATABASE_URL, min_size=1, max_size=5)
         await _ensure_notification_settings_table(db_pool)
+        await _ensure_gaming_rooms_table(db_pool)
 
 
 @app.on_event("shutdown")
@@ -391,8 +521,9 @@ async def get_discover_users(
 ):
     """Get potential matches."""
     safe_limit = max(1, min(limit, 50))
-    current_country = (current_user.get('country') or '').strip()
-    current_city = (current_user.get('city') or '').strip()
+    # Keep location preferences in dedicated filters; do not hard-bind discover to profile city/country.
+    current_country = ''
+    current_city = ''
     looking_for = (current_user.get('looking_for') or 'everyone').strip().lower()
     age_min = int(current_user.get('age_min') or 18)
     age_max = int(current_user.get('age_max') or 99)
@@ -401,28 +532,17 @@ async def get_discover_users(
         age_min, age_max = age_max, age_min
     max_distance = max(1, min(max_distance, 500))
 
-    # Require country to avoid showing unrelated global profiles.
-    if not current_country:
-        print(f"❌ User {current_user['id']} has no country in profile")
-        return {"users": []}
-    
     if RUN_WITHOUT_DB or pool is None:
-        # Return other in-memory profiles with same city/country for local tests.
-        print(f"🔍 Discovering for user {current_user['id']} (country='{current_country}', city='{current_city}')")
+        # Return other in-memory profiles without strict city/country tie.
+        print(f"🔍 Discovering for user {current_user['id']}")
         candidate_users = []
         for user_id, profile in mock_profiles.items():
-            print(f"  Checking user {user_id}: country='{profile.get('country')}', city='{profile.get('city')}', completed={profile.get('profile_completed')}")
+            print(f"  Checking user {user_id}: completed={profile.get('profile_completed')}")
             if user_id == int(current_user['id']):
                 print(f"    ❌ Skip: same user")
                 continue
             if not profile.get('profile_completed'):
                 print(f"    ❌ Skip: profile not completed")
-                continue
-            if (profile.get('country') or '').strip().lower() != current_country.lower():
-                print(f"    ❌ Skip: country mismatch")
-                continue
-            if current_city and (profile.get('city') or '').strip().lower() != current_city.lower():
-                print(f"    ❌ Skip: city mismatch")
                 continue
             if looking_for != 'everyone' and (profile.get('gender') or '').strip().lower() != looking_for:
                 print(f"    ❌ Skip: gender mismatch")
@@ -434,11 +554,12 @@ async def get_discover_users(
                     "first_name": profile.get('first_name') or 'User',
                     "age": 25,
                     "bio": profile.get('bio') or "",
-                    "photos_urls": [],
+                    "photos_urls": profile.get('photos_urls') or [],
                     "interests": ["💬 Chat"],
                     "city": profile.get('city') or '',
                     "country": profile.get('country') or '',
                     "gender": profile.get('gender') or 'female',
+                    "is_premium": bool(profile.get('is_premium', False)),
                     "distance": 5.0,
                 }
             )
@@ -462,6 +583,8 @@ async def get_discover_users(
                 u.first_name,
                 u.bio,
                 u.photos_urls,
+                u.primary_photo_url,
+                u.is_premium,
                 u.interests,
                 u.city,
                 u.country,
@@ -479,6 +602,12 @@ async def get_discover_users(
                 AND EXTRACT(YEAR FROM AGE(u.birthdate)) BETWEEN $8 AND $9
                 AND ($4::text = '' OR LOWER(COALESCE(u.country, '')) = LOWER($4))
                 AND ($5::text = '' OR LOWER(COALESCE(u.city, '')) = LOWER($5))
+                AND u.first_name IS NOT NULL AND u.first_name <> ''
+                AND u.birthdate IS NOT NULL
+                AND u.gender IS NOT NULL AND u.gender <> ''
+                AND u.city IS NOT NULL AND u.city <> ''
+                AND u.country IS NOT NULL AND u.country <> ''
+                AND CARDINALITY(COALESCE(u.photos_urls, ARRAY[]::text[])) > 0
                 AND NOT EXISTS (
                     SELECT 1 FROM swipes s
                     WHERE s.from_user_id = $1 AND s.to_user_id = u.id
@@ -510,6 +639,8 @@ async def get_discover_users(
                 u.first_name,
                 u.bio,
                 u.photos_urls,
+                u.primary_photo_url,
+                u.is_premium,
                 u.interests,
                 u.city,
                 u.country,
@@ -525,6 +656,12 @@ async def get_discover_users(
                 AND ($4::text = '' OR LOWER(COALESCE(u.city, '')) = LOWER($4))
                 AND ($5::text = 'everyone' OR LOWER(COALESCE(u.gender, '')) = LOWER($5))
                 AND EXTRACT(YEAR FROM AGE(u.birthdate)) BETWEEN $6 AND $7
+                AND u.first_name IS NOT NULL AND u.first_name <> ''
+                AND u.birthdate IS NOT NULL
+                AND u.gender IS NOT NULL AND u.gender <> ''
+                AND u.city IS NOT NULL AND u.city <> ''
+                AND u.country IS NOT NULL AND u.country <> ''
+                AND CARDINALITY(COALESCE(u.photos_urls, ARRAY[]::text[])) > 0
                 AND NOT EXISTS (
                     SELECT 1 FROM swipes s
                     WHERE s.from_user_id = $1 AND s.to_user_id = u.id
@@ -556,6 +693,8 @@ async def get_discover_users(
                 "age": u['age'],
                 "bio": u['bio'],
                 "photos_urls": u['photos_urls'] or [],
+                "primary_photo_url": u['primary_photo_url'],
+                "is_premium": bool(u['is_premium']),
                 "interests": u['interests'] or [],
                 "city": u['city'],
                 "country": u['country'],
@@ -799,6 +938,8 @@ async def create_message(
     """Create message in a match and notify receiver in Telegram."""
     if not payload.content.strip():
         raise HTTPException(status_code=400, detail="Message content is empty")
+    if _contains_profanity(payload.content):
+        raise HTTPException(status_code=400, detail="Please keep the chat respectful")
 
     _check_rate_limit(current_user['id'], "messages", limit=120, window_sec=60)
 
@@ -904,6 +1045,8 @@ async def create_direct_message(
     """Create message by target user id (helper for mini-app match popup)."""
     if not payload.content.strip():
         raise HTTPException(status_code=400, detail="Message content is empty")
+    if _contains_profanity(payload.content):
+        raise HTTPException(status_code=400, detail="Please keep the chat respectful")
 
     if payload.target_user_id == current_user['id']:
         raise HTTPException(status_code=400, detail="Cannot message yourself")
@@ -997,6 +1140,164 @@ async def create_direct_message(
     payload_resp = {"id": int(inserted['id']), "created_at": str(inserted['created_at'])}
     if idem_key:
         _idempotency_set(current_user['id'], f"msgdirect:{idem_key}", payload_resp)
+    return MessageCreateResponse(**payload_resp)
+
+
+@app.get("/api/gaming/rooms", response_model=GamingRoomsResponse)
+async def get_gaming_rooms(
+    current_user: dict = Depends(get_current_user),
+    pool: asyncpg.Pool = Depends(get_db_pool),
+):
+    if RUN_WITHOUT_DB or pool is None:
+        items = [
+            GamingRoomInfo(
+                slug=slug,
+                title=room["title"],
+                description=room["description"],
+                online_count=len(mock_room_messages.get(slug, [])),
+            )
+            for slug, room in GAMING_ROOMS.items()
+        ]
+        return GamingRoomsResponse(items=items)
+
+    async with pool.acquire() as conn:
+        rows = await conn.fetch(
+            """
+            SELECT room_slug, COUNT(*)::int AS messages_count
+            FROM gaming_room_messages
+            GROUP BY room_slug
+            """
+        )
+    counts = {r["room_slug"]: int(r["messages_count"] or 0) for r in rows}
+    items = [
+        GamingRoomInfo(
+            slug=slug,
+            title=room["title"],
+            description=room["description"],
+            online_count=counts.get(slug, 0),
+        )
+        for slug, room in GAMING_ROOMS.items()
+    ]
+    return GamingRoomsResponse(items=items)
+
+
+@app.get("/api/gaming/rooms/{room_slug}/messages", response_model=GamingRoomMessagesResponse)
+async def get_gaming_room_messages(
+    room_slug: str,
+    limit: int = 100,
+    current_user: dict = Depends(get_current_user),
+    pool: asyncpg.Pool = Depends(get_db_pool),
+):
+    room = _get_room_info(room_slug)
+    safe_limit = max(1, min(limit, 200))
+    welcome = GamingRoomMessageItem(
+        id=0,
+        room_slug=room_slug,
+        sender_name="Система",
+        content=f"Добро пожаловать в {room['title']}. Здесь ищут пати, обсуждают игру и общаются уважительно. Без мата, без токсика, с уважением к каждому.",
+        created_at=_now_iso(),
+        is_own=False,
+    )
+
+    if RUN_WITHOUT_DB or pool is None:
+        raw_items = mock_room_messages.get(room_slug, [])[-safe_limit:]
+        items = [welcome] + [
+            GamingRoomMessageItem(
+                id=int(item["id"]),
+                room_slug=room_slug,
+                sender_name=item.get("sender_name") or "User",
+                content=item.get("content") or "",
+                created_at=str(item.get("created_at")),
+                is_own=int(item.get("user_id", 0)) == int(current_user["id"]),
+            )
+            for item in raw_items
+        ]
+        return GamingRoomMessagesResponse(items=items)
+
+    async with pool.acquire() as conn:
+        rows = await conn.fetch(
+            """
+            SELECT gm.id, gm.room_slug, gm.content, gm.created_at, gm.user_id, u.first_name
+            FROM gaming_room_messages gm
+            JOIN users u ON u.id = gm.user_id
+            WHERE gm.room_slug = $1
+            ORDER BY gm.id DESC
+            LIMIT $2
+            """,
+            room_slug,
+            safe_limit,
+        )
+
+    items = [welcome] + [
+        GamingRoomMessageItem(
+            id=int(r["id"]),
+            room_slug=r["room_slug"],
+            sender_name=r["first_name"] or "User",
+            content=r["content"],
+            created_at=str(r["created_at"]),
+            is_own=int(r["user_id"]) == int(current_user["id"]),
+        )
+        for r in reversed(rows)
+    ]
+    return GamingRoomMessagesResponse(items=items)
+
+
+@app.post("/api/gaming/rooms/{room_slug}/messages", response_model=MessageCreateResponse)
+async def create_gaming_room_message(
+    room_slug: str,
+    payload: GamingRoomMessageCreateRequest,
+    request: Request,
+    current_user: dict = Depends(get_current_user),
+    pool: asyncpg.Pool = Depends(get_db_pool),
+):
+    _get_room_info(room_slug)
+    content = payload.content.strip()
+    if not content:
+        raise HTTPException(status_code=400, detail="Message content is empty")
+    if _contains_profanity(content):
+        raise HTTPException(status_code=400, detail="Please keep the chat respectful")
+
+    _check_rate_limit(current_user['id'], f"gaming:{room_slug}", limit=40, window_sec=60)
+    idem_key = (request.headers.get("Idempotency-Key") or "").strip()
+    if idem_key:
+        cached = _idempotency_get(current_user['id'], f"gaming:{room_slug}:{idem_key}")
+        if cached is not None:
+            return JSONResponse(content=cached)
+
+    if RUN_WITHOUT_DB or pool is None:
+        global mock_next_room_message_id
+        created_at = _now_iso()
+        mock_room_messages[room_slug].append(
+            {
+                "id": mock_next_room_message_id,
+                "room_slug": room_slug,
+                "user_id": int(current_user["id"]),
+                "sender_name": current_user.get("first_name") or "User",
+                "content": content,
+                "created_at": created_at,
+            }
+        )
+        payload_resp = {"id": mock_next_room_message_id, "created_at": created_at}
+        mock_next_room_message_id += 1
+        if idem_key:
+            _idempotency_set(current_user['id'], f"gaming:{room_slug}:{idem_key}", payload_resp)
+        return MessageCreateResponse(**payload_resp)
+
+    async with pool.acquire() as conn:
+        inserted = await conn.fetchrow(
+            """
+            INSERT INTO gaming_room_messages (room_slug, user_id, content)
+            VALUES ($1, $2, $3)
+            RETURNING id, created_at
+            """,
+            room_slug,
+            current_user["id"],
+            content,
+        )
+
+    payload_resp = {"id": int(inserted["id"]), "created_at": str(inserted["created_at"])}
+    if idem_key:
+        _idempotency_set(current_user['id'], f"gaming:{room_slug}:{idem_key}", payload_resp)
     return MessageCreateResponse(**payload_resp)
 
 
@@ -1223,6 +1524,13 @@ async def get_profile(
             "city": profile.get('city', ''),
             "country": profile.get('country', ''),
             "gender": profile.get('gender', 'female'),
+            "looking_for": profile.get('looking_for', 'everyone'),
+            "age_min": int(profile.get('age_min', 18) or 18),
+            "age_max": int(profile.get('age_max', 99) or 99),
+            "max_distance": int(profile.get('max_distance', 50) or 50),
+            "photos_urls": profile.get('photos_urls') or [],
+            "primary_photo_url": profile.get('primary_photo_url'),
+            "profile_completed": bool(profile.get('profile_completed', False)),
             "is_premium": bool(profile.get('is_premium', False)),
         }
 
@@ -1236,6 +1544,13 @@ async def get_profile(
                    city,
                    country,
                    gender,
+                     looking_for,
+                     age_min,
+                     age_max,
+                     max_distance,
+                     photos_urls,
+                     primary_photo_url,
+                     profile_completed,
                    is_premium
             FROM users
             WHERE id = $1
@@ -1269,11 +1584,25 @@ async def update_profile(
             profile['country'] = payload.country
         if payload.gender is not None:
             profile['gender'] = payload.gender
+        if payload.looking_for is not None:
+            profile['looking_for'] = payload.looking_for
+        if payload.age_min is not None:
+            profile['age_min'] = max(18, min(int(payload.age_min), 80))
+        if payload.age_max is not None:
+            profile['age_max'] = max(18, min(int(payload.age_max), 80))
+        if payload.max_distance is not None:
+            profile['max_distance'] = max(1, min(int(payload.max_distance), 500))
+        if payload.photos_urls is not None:
+            profile['photos_urls'] = payload.photos_urls
+        if payload.primary_photo_url is not None:
+            profile['primary_photo_url'] = payload.primary_photo_url
         if payload.is_premium is not None:
             profile['is_premium'] = payload.is_premium
         profile['id'] = user_id
         profile['telegram_id'] = user_id
-        profile['profile_completed'] = bool((profile.get('country') or '').strip() and (profile.get('city') or '').strip())
+        if payload.age is not None:
+            profile['birthdate'] = datetime.now(timezone.utc).date().replace(year=datetime.now(timezone.utc).year - profile['age'])
+        profile['profile_completed'] = _profile_is_complete(profile)
         profile['location'] = None
         mock_profiles[user_id] = profile
         print(f"✅ Profile updated for user {user_id}: country={profile.get('country')}, city={profile.get('city')}, completed={profile['profile_completed']}")
@@ -1285,6 +1614,18 @@ async def update_profile(
 
     if payload.gender and payload.gender not in {"male", "female", "other"}:
         raise HTTPException(status_code=400, detail="Invalid gender")
+
+    if payload.looking_for and payload.looking_for not in {"male", "female", "everyone"}:
+        raise HTTPException(status_code=400, detail="Invalid looking_for")
+
+    if payload.age_min is not None and not (18 <= int(payload.age_min) <= 80):
+        raise HTTPException(status_code=400, detail="Invalid age_min")
+
+    if payload.age_max is not None and not (18 <= int(payload.age_max) <= 80):
+        raise HTTPException(status_code=400, detail="Invalid age_max")
+
+    if payload.max_distance is not None and not (1 <= int(payload.max_distance) <= 500):
+        raise HTTPException(status_code=400, detail="Invalid max_distance")
 
     async with pool.acquire() as conn:
         await conn.execute(
@@ -1304,12 +1645,28 @@ async def update_profile(
                 country = COALESCE($5, country),
                 gender = COALESCE($6, gender),
                 is_premium = COALESCE($7, is_premium),
+                looking_for = COALESCE($8, looking_for),
+                age_min = COALESCE($9, age_min),
+                age_max = COALESCE($10, age_max),
+                max_distance = COALESCE($11, max_distance),
+                photos_urls = COALESCE($12, photos_urls),
+                primary_photo_url = COALESCE($13, primary_photo_url),
                 profile_completed = (
-                    LENGTH(TRIM(COALESCE($4, city, ''))) > 0
+                    LENGTH(TRIM(COALESCE($1, first_name, ''))) > 0
+                    AND COALESCE(
+                        CASE
+                            WHEN $2::int IS NULL THEN birthdate
+                            ELSE make_date(EXTRACT(YEAR FROM CURRENT_DATE)::int - $2::int, 1, 1)
+                        END,
+                        birthdate
+                    ) IS NOT NULL
+                    AND LENGTH(TRIM(COALESCE($4, city, ''))) > 0
                     AND LENGTH(TRIM(COALESCE($5, country, ''))) > 0
+                    AND LENGTH(TRIM(COALESCE($6, gender, ''))) > 0
+                    AND CARDINALITY(COALESCE($12, photos_urls, ARRAY[]::text[])) > 0
                 ),
                 updated_at = CURRENT_TIMESTAMP
-            WHERE id = $8
+            WHERE id = $14
             """,
             payload.first_name,
             payload.age,
@@ -1318,9 +1675,30 @@ async def update_profile(
             payload.country,
             payload.gender,
             payload.is_premium,
+            payload.looking_for,
+            payload.age_min,
+            payload.age_max,
+            payload.max_distance,
+            payload.photos_urls,
+            payload.primary_photo_url,
             current_user['id'],
         )
     return {"success": True}
+
+
+@app.get("/api/photos/{file_id}")
+async def get_profile_photo(file_id: str):
+    """Proxy Telegram photo by file_id without exposing bot token to clients."""
+    try:
+        content, media_type = await asyncio.to_thread(_download_telegram_photo, file_id)
+    except Exception as exc:
+        raise HTTPException(status_code=404, detail="Photo not found") from exc
+
+    return Response(
+        content=content,
+        media_type=media_type,
+        headers={"Cache-Control": "public, max-age=3600"},
+    )
 
 
 @app.get("/api/settings/notifications")

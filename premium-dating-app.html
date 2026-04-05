@@ -813,6 +813,178 @@
             font-size: 12px;
             margin-top: 8px;
         }
+
+        .bottom-nav {
+            gap: 4px;
+            padding: 10px 14px calc(10px + env(safe-area-inset-bottom));
+        }
+
+        .nav-btn span {
+            font-size: 10px;
+        }
+
+        .community-hero {
+            background: linear-gradient(135deg, rgba(56, 189, 248, 0.18), rgba(99, 102, 241, 0.18), rgba(244, 114, 182, 0.14));
+            border: 1px solid rgba(255,255,255,0.16);
+            border-radius: 24px;
+            padding: 18px;
+            margin-bottom: 16px;
+            box-shadow: 0 18px 45px rgba(15, 23, 42, 0.28);
+        }
+
+        .community-hero h2 {
+            color: #fff;
+            font-size: 24px;
+            margin-bottom: 8px;
+        }
+
+        .community-hero p {
+            color: rgba(255,255,255,0.74);
+            line-height: 1.45;
+            font-size: 14px;
+        }
+
+        .rooms-grid {
+            display: grid;
+            gap: 14px;
+            padding-bottom: 90px;
+        }
+
+        .room-card {
+            position: relative;
+            overflow: hidden;
+            border-radius: 22px;
+            padding: 18px;
+            border: 1px solid rgba(255,255,255,0.14);
+            background: rgba(255,255,255,0.08);
+            backdrop-filter: blur(14px);
+            box-shadow: 0 14px 40px rgba(15, 23, 42, 0.24);
+            cursor: pointer;
+            transition: transform .22s ease, border-color .22s ease, background .22s ease;
+        }
+
+        .room-card:hover {
+            transform: translateY(-2px);
+            border-color: rgba(255,255,255,0.26);
+            background: rgba(255,255,255,0.11);
+        }
+
+        .room-card::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle at top right, rgba(255,255,255,0.16), transparent 42%);
+            pointer-events: none;
+        }
+
+        .room-card.dota2 {
+            background-image: linear-gradient(135deg, rgba(185, 28, 28, 0.26), rgba(30, 41, 59, 0.4));
+        }
+
+        .room-card.cs2 {
+            background-image: linear-gradient(135deg, rgba(234, 88, 12, 0.26), rgba(15, 23, 42, 0.4));
+        }
+
+        .room-top {
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .room-title {
+            color: #fff;
+            font-size: 18px;
+            font-weight: 700;
+        }
+
+        .room-online {
+            color: #d1fae5;
+            background: rgba(16, 185, 129, 0.18);
+            border: 1px solid rgba(16, 185, 129, 0.26);
+            border-radius: 999px;
+            padding: 5px 10px;
+            font-size: 11px;
+            font-weight: 700;
+        }
+
+        .room-desc {
+            color: rgba(255,255,255,0.78);
+            font-size: 13px;
+            line-height: 1.5;
+            margin-bottom: 12px;
+        }
+
+        .room-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .room-tag {
+            color: #fff;
+            font-size: 11px;
+            padding: 5px 9px;
+            border-radius: 999px;
+            background: rgba(255,255,255,0.12);
+            border: 1px solid rgba(255,255,255,0.12);
+        }
+
+        .gaming-thread {
+            display: none;
+            padding-bottom: 88px;
+        }
+
+        .gaming-thread.active {
+            display: block;
+        }
+
+        .gaming-compose {
+            display: flex;
+            gap: 8px;
+            margin-top: 12px;
+            position: sticky;
+            bottom: 92px;
+            padding-top: 12px;
+            background: linear-gradient(180deg, rgba(15,23,42,0), rgba(15,23,42,0.88) 35%);
+        }
+
+        .gaming-compose input {
+            flex: 1;
+            border-radius: 14px;
+            border: 1px solid rgba(255,255,255,0.16);
+            background: rgba(255,255,255,0.08);
+            color: #fff;
+            padding: 12px 14px;
+        }
+
+        .gaming-compose button {
+            border: none;
+            border-radius: 14px;
+            padding: 0 16px;
+            background: linear-gradient(135deg, #22c55e, #06b6d4);
+            color: #04111f;
+            font-weight: 800;
+        }
+
+        .gaming-welcome {
+            margin-bottom: 12px;
+            padding: 14px;
+            border-radius: 18px;
+            background: rgba(255,255,255,0.08);
+            border: 1px solid rgba(255,255,255,0.12);
+            color: rgba(255,255,255,0.82);
+            font-size: 13px;
+            line-height: 1.5;
+        }
+
+        .bubble.system {
+            background: rgba(59, 130, 246, 0.16);
+            border: 1px solid rgba(96, 165, 250, 0.18);
+            color: #dbeafe;
+            align-self: center;
+        }
     </style>
 </head>
 <body>
@@ -919,6 +1091,30 @@
                 <div class="thread-compose">
                     <input id="thread-input" type="text" placeholder="Введите сообщение...">
                     <button id="thread-send-btn" type="button">Отправить</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="gaming-screen" class="screen">
+            <div class="community-hero">
+                <h2 id="gaming-title">Комната геймеров</h2>
+                <p id="gaming-subtitle">Найдите тиммейтов для вечерней катки, соберите пати и общайтесь без токсика.</p>
+            </div>
+
+            <div id="gaming-rooms-list" class="rooms-grid">
+                <div class="muted-line">Загрузка игровых комнат...</div>
+            </div>
+
+            <div id="gaming-thread" class="gaming-thread">
+                <div class="thread-header">
+                    <button id="gaming-back-btn" class="thread-back" type="button">← Назад</button>
+                    <span id="gaming-room-name">Комната</span>
+                </div>
+                <div class="gaming-welcome" id="gaming-room-welcome"></div>
+                <div id="gaming-thread-messages" class="thread-messages"></div>
+                <div class="gaming-compose">
+                    <input id="gaming-thread-input" type="text" placeholder="Напишите, в какую пати ищете людей...">
+                    <button id="gaming-thread-send" type="button">Отправить</button>
                 </div>
             </div>
         </div>
@@ -1053,6 +1249,12 @@
                 </svg>
                 <span>Сообщения</span>
             </div>
+            <div class="nav-btn" onclick="showScreen('gaming')">
+                <svg fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M6 6a2 2 0 114 0v1h4a2 2 0 012 2v4a3 3 0 01-3 3H7a3 3 0 01-3-3V9a2 2 0 012-2h0V6zm2 0v1h1V6a1 1 0 10-2 0zM7 11a1 1 0 100 2 1 1 0 000-2zm6 0a1 1 0 100 2 1 1 0 000-2z"/>
+                </svg>
+                <span>Геймеры</span>
+            </div>
             <div class="nav-btn" onclick="showScreen('profile')">
                 <svg fill="currentColor" viewBox="0 0 20 20">
                     <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"/>
@@ -1131,7 +1333,11 @@
                 navDiscovery: 'Discover',
                 navMatches: 'Matches',
                 navMessages: 'Messages',
+                navGaming: 'Gamers',
                 navProfile: 'Profile',
+                gamingTitle: 'Gaming Room',
+                gamingSubtitle: 'Find teammates for tonight, gather a party and communicate without toxicity.',
+                gamingWelcome: 'Respect each other, no insults, no profanity. Tell others what rank, role or map you are looking for.',
                 filtersTitle: 'Search Filters',
                 filtersEmptyTitle: 'Set your filters',
                 filtersEmptyDesc: 'Choose preferences to find your match',
@@ -1152,7 +1358,10 @@
             ru: {
                 title: 'Premium Dating - Приложение для знакомств',
                 hint: 'Свайпните вправо для лайка или нажмите ❤️',
-                navDiscovery: 'Поиск', navMatches: 'Мэтчи', navMessages: 'Сообщения', navProfile: 'Профиль',
+                navDiscovery: 'Поиск', navMatches: 'Мэтчи', navMessages: 'Сообщения', navGaming: 'Геймеры', navProfile: 'Профиль',
+                gamingTitle: 'Комната геймеров',
+                gamingSubtitle: 'Ищите тиммейтов для катки, собирайте пати и общайтесь без токсика.',
+                gamingWelcome: 'Будьте уважительны: без мата, без оскорблений. Напишите ваш ранг, роль или кого ищете в пати.',
                 filtersTitle: 'Фильтры поиска',
                 filtersEmptyTitle: 'Настройте фильтры',
                 filtersEmptyDesc: 'Выберите предпочтения для поиска партнёра',
@@ -1173,7 +1382,10 @@
             uk: {
                 title: 'Premium Dating - Додаток для знайомств',
                 hint: 'Свайпніть вправо для лайка або натисніть ❤️',
-                navDiscovery: 'Пошук', navMatches: 'Метчі', navMessages: 'Повідомлення', navProfile: 'Профіль',
+                navDiscovery: 'Пошук', navMatches: 'Метчі', navMessages: 'Повідомлення', navGaming: 'Геймери', navProfile: 'Профіль',
+                gamingTitle: 'Кімната геймерів',
+                gamingSubtitle: 'Шукайте тіммейтів, збирайте паті та спілкуйтеся без токсичності.',
+                gamingWelcome: 'Поважайте одне одного: без лайки та образ. Напишіть свій ранг, роль або кого шукаєте в паті.',
                 filtersTitle: 'Фільтри пошуку',
                 filtersEmptyTitle: 'Налаштуйте фільтри',
                 filtersEmptyDesc: 'Оберіть параметри для пошуку пари',
@@ -1194,7 +1406,10 @@
             cs: {
                 title: 'Premium Dating - Seznamovací aplikace',
                 hint: 'Táhni doprava pro like nebo stiskni ❤️',
-                navDiscovery: 'Objevování', navMatches: 'Shody', navMessages: 'Zprávy', navProfile: 'Profil',
+                navDiscovery: 'Objevování', navMatches: 'Shody', navMessages: 'Zprávy', navGaming: 'Hráči', navProfile: 'Profil',
+                gamingTitle: 'Herní místnost',
+                gamingSubtitle: 'Najdi spoluhráče, slož partu a komunikuj bez toxicity.',
+                gamingWelcome: 'Komunikujte s respektem: bez nadávek a urážek. Napiš rank, roli nebo koho hledáš do party.',
                 filtersTitle: 'Filtry hledání',
                 filtersEmptyTitle: 'Nastav si filtry',
                 filtersEmptyDesc: 'Vyber preference pro hledání partnera',
@@ -1215,7 +1430,10 @@
             pl: {
                 title: 'Premium Dating - Aplikacja randkowa',
                 hint: 'Przesuń w prawo, aby polubić lub naciśnij ❤️',
-                navDiscovery: 'Odkrywaj', navMatches: 'Matche', navMessages: 'Wiadomości', navProfile: 'Profil',
+                navDiscovery: 'Odkrywaj', navMatches: 'Matche', navMessages: 'Wiadomości', navGaming: 'Gracze', navProfile: 'Profil',
+                gamingTitle: 'Pokój graczy',
+                gamingSubtitle: 'Znajdź teammate’ów, zbierz party i rozmawiaj bez toksyczności.',
+                gamingWelcome: 'Szanuj innych: bez przekleństw i wyzwisk. Napisz swój rank, rolę albo kogo szukasz do party.',
                 filtersTitle: 'Filtry wyszukiwania',
                 filtersEmptyTitle: 'Ustaw filtry',
                 filtersEmptyDesc: 'Wybierz preferencje wyszukiwania',
@@ -1257,12 +1475,20 @@
             if (hint) hint.textContent = T.hint;
 
             const nav = document.querySelectorAll('.bottom-nav .nav-btn span');
-            if (nav.length >= 4) {
+            if (nav.length >= 5) {
                 nav[0].textContent = T.navDiscovery;
                 nav[1].textContent = T.navMatches;
                 nav[2].textContent = T.navMessages;
-                nav[3].textContent = T.navProfile;
+                nav[3].textContent = T.navGaming;
+                nav[4].textContent = T.navProfile;
             }
+
+            const gamingTitle = document.getElementById('gaming-title');
+            const gamingSubtitle = document.getElementById('gaming-subtitle');
+            const gamingWelcome = document.getElementById('gaming-room-welcome');
+            if (gamingTitle) gamingTitle.textContent = T.gamingTitle;
+            if (gamingSubtitle) gamingSubtitle.textContent = T.gamingSubtitle;
+            if (gamingWelcome) gamingWelcome.textContent = T.gamingWelcome;
 
             const filtersTitle = document.querySelector('#filters-screen h2');
             if (filtersTitle) filtersTitle.textContent = T.filtersTitle;
@@ -1444,10 +1670,28 @@
             let inboxMatches = [];
             let activeThreadMatchId = null;
             let activeThreadUserName = '';
+            let activeGamingRoom = '';
+            let activeGamingRoomName = '';
 
             function getCurrentUser() {
                 if (!tg || !tg.initDataUnsafe || !tg.initDataUnsafe.user) return null;
                 return tg.initDataUnsafe.user;
+            }
+
+            function applyPhotoToElement(element, photoUrl) {
+                if (!element) return;
+                const placeholder = element.querySelector('.photo-placeholder, svg');
+                if (photoUrl) {
+                    element.style.backgroundImage = `linear-gradient(180deg, rgba(15,23,42,0.12), rgba(15,23,42,0.42)), url("${String(photoUrl).replace(/"/g, '&quot;')}")`;
+                    element.style.backgroundSize = 'cover';
+                    element.style.backgroundPosition = 'center';
+                    if (placeholder) placeholder.style.display = 'none';
+                    return;
+                }
+                element.style.backgroundImage = '';
+                element.style.backgroundSize = '';
+                element.style.backgroundPosition = '';
+                if (placeholder) placeholder.style.display = '';
             }
 
             async function apiRequest(path, options) {
@@ -1504,6 +1748,8 @@
                         name: u.first_name || 'User',
                         age: Number(u.age || 25),
                         bio: u.bio || '',
+                        photos_urls: Array.isArray(u.photos_urls) ? u.photos_urls : [],
+                        primary_photo_url: u.primary_photo_url || '',
                         city: u.city || '-',
                         distance: Number(u.distance || 1),
                         interests: Array.isArray(u.interests) && u.interests.length ? u.interests : ['💬 Chat'],
@@ -1535,9 +1781,12 @@
                     }
                     grid.innerHTML = data.items.map((m) => {
                         const last = m.last_message || 'Совпадение! Начните диалог';
+                        const photoStyle = m.primary_photo_url
+                            ? `style="background-image:url('${String(m.primary_photo_url).replace(/'/g, '&#39;')}');background-size:cover;background-position:center;"`
+                            : '';
                         return `
                             <div class="match-card" data-match-id="${m.match_id}" data-user-id="${m.user_id}" data-user-name="${(m.first_name || 'User').replace(/"/g, '&quot;')}">
-                                <div class="match-photo">
+                                <div class="match-photo" ${photoStyle}>
                                     <svg fill="currentColor" viewBox="0 0 20 20">
                                         <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"/>
                                     </svg>
@@ -1678,9 +1927,103 @@
                     if (typeof p.city === 'string') profileData.city = p.city;
                     if (typeof p.country === 'string') profileData.country = p.country;
                     if (typeof p.gender === 'string') profileData.gender = p.gender;
+                    if (Array.isArray(p.photos_urls)) profileData.photos_urls = p.photos_urls;
+                    if (typeof p.primary_photo_url === 'string') profileData.primary_photo_url = p.primary_photo_url;
+                    if (typeof p.profile_completed === 'boolean') profileData.profile_completed = p.profile_completed;
                     if (typeof p.is_premium === 'boolean') profileData.premium = p.is_premium;
                 } catch (e) {
                     // Keep local fallback.
+                }
+            }
+
+            async function loadGamingRoomsFromApi() {
+                const list = document.getElementById('gaming-rooms-list');
+                if (!list) return;
+                if (!initData) {
+                    list.innerHTML = '<div class="muted-line">Нет авторизации Telegram</div>';
+                    return;
+                }
+                try {
+                    const data = await apiRequest('/api/gaming/rooms');
+                    const rooms = Array.isArray(data && data.items) ? data.items : [];
+                    list.innerHTML = rooms.map((room) => `
+                        <div class="room-card ${room.slug}" data-room-slug="${room.slug}" data-room-title="${String(room.title).replace(/"/g, '&quot;')}">
+                            <div class="room-top">
+                                <div class="room-title">${room.title}</div>
+                                <div class="room-online">${room.online_count || 0} online</div>
+                            </div>
+                            <div class="room-desc">${room.description || ''}</div>
+                            <div class="room-tags">
+                                <span class="room-tag">Пати</span>
+                                <span class="room-tag">Голос</span>
+                                <span class="room-tag">Без токсика</span>
+                            </div>
+                        </div>
+                    `).join('');
+                    list.querySelectorAll('.room-card').forEach((card) => {
+                        card.addEventListener('click', () => {
+                            openGamingRoom(card.getAttribute('data-room-slug') || '', card.getAttribute('data-room-title') || 'Room');
+                        });
+                    });
+                } catch (e) {
+                    list.innerHTML = '<div class="muted-line">Не удалось загрузить комнаты</div>';
+                }
+            }
+
+            async function openGamingRoom(roomSlug, roomTitle) {
+                activeGamingRoom = roomSlug;
+                activeGamingRoomName = roomTitle;
+                const list = document.getElementById('gaming-rooms-list');
+                const thread = document.getElementById('gaming-thread');
+                const title = document.getElementById('gaming-room-name');
+                if (title) title.textContent = roomTitle;
+                if (list) list.style.display = 'none';
+                if (thread) thread.classList.add('active');
+                try {
+                    const data = await apiRequest(`/api/gaming/rooms/${roomSlug}/messages?limit=100`);
+                    const items = Array.isArray(data && data.items) ? data.items : [];
+                    const wrap = document.getElementById('gaming-thread-messages');
+                    const currentUser = getCurrentUser();
+                    const currentId = currentUser ? Number(currentUser.id) : 0;
+                    if (!wrap) return;
+                    wrap.innerHTML = items.map((msg) => {
+                        let klass = 'in';
+                        if (msg.id === 0) klass = 'system';
+                        else if (msg.is_own) klass = 'out';
+                        const safeContent = String(msg.content || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                        const sender = msg.id === 0 ? msg.sender_name : `${msg.sender_name || 'User'}${msg.is_own ? ' · вы' : ''}`;
+                        return `<div class="bubble ${klass}"><strong>${sender}</strong><br>${safeContent}</div>`;
+                    }).join('');
+                    wrap.scrollTop = wrap.scrollHeight;
+                } catch (e) {
+                    const wrap = document.getElementById('gaming-thread-messages');
+                    if (wrap) wrap.innerHTML = '<div class="muted-line">Не удалось загрузить сообщения комнаты</div>';
+                }
+            }
+
+            function closeGamingRoom() {
+                activeGamingRoom = '';
+                activeGamingRoomName = '';
+                const list = document.getElementById('gaming-rooms-list');
+                const thread = document.getElementById('gaming-thread');
+                if (list) list.style.display = '';
+                if (thread) thread.classList.remove('active');
+            }
+
+            async function sendGamingRoomMessage() {
+                if (!activeGamingRoom) return;
+                const input = document.getElementById('gaming-thread-input');
+                const content = input ? String(input.value || '').trim() : '';
+                if (!content) return;
+                try {
+                    await apiRequest(`/api/gaming/rooms/${activeGamingRoom}/messages`, {
+                        method: 'POST',
+                        body: JSON.stringify({ content }),
+                    });
+                    if (input) input.value = '';
+                    await openGamingRoom(activeGamingRoom, activeGamingRoomName);
+                } catch (e) {
+                    alert('Сообщение не отправлено. Возможно, текст нарушает правила комнаты.');
                 }
             }
 
@@ -1730,6 +2073,9 @@
                 city: firstUser.city || '',
                 gender: firstUser.gender || 'female',
                 premium: !!firstUser.premium,
+                photos_urls: firstUser.photos_urls || [],
+                primary_photo_url: firstUser.primary_photo_url || '',
+                profile_completed: false,
                 distance: firstUser.distance || 2,
             };
 
@@ -1742,7 +2088,7 @@
 
             function setNavActive(screenName) {
                 document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
-                const map = { discovery: 0, matches: 1, messages: 2, profile: 3 };
+                const map = { discovery: 0, matches: 1, messages: 2, gaming: 3, profile: 4 };
                 const idx = map[screenName];
                 const navButtons = document.querySelectorAll('.nav-btn');
                 if (typeof idx === 'number' && navButtons[idx]) {
@@ -1767,6 +2113,10 @@
                 if (screenName === 'messages') {
                     closeMessageThread();
                     await loadMessagesInboxFromApi();
+                }
+                if (screenName === 'gaming') {
+                    closeGamingRoom();
+                    await loadGamingRoomsFromApi();
                 }
                 if (screenName === 'profile') {
                     await loadProfileFromApi();
@@ -1835,19 +2185,12 @@
                 if (cityEl) cityEl.textContent = profileData.city || '-';
                 if (genderEl) genderEl.textContent = profileData.gender === 'male' ? T.genderMale : T.genderFemale;
                 if (premiumEl) premiumEl.textContent = profileData.premium ? T.premiumYes : T.premiumNo;
+                const profilePhoto = document.querySelector('#profile-screen .profile-photo');
+                applyPhotoToElement(profilePhoto, profileData.primary_photo_url || (profileData.photos_urls || [])[0]);
             }
 
             window.openEditProfile = function() {
-                const set = (id, v) => { const el = document.getElementById(id); if (el) el.value = v; };
-                set('edit-name', profileData.name);
-                set('edit-age', profileData.age);
-                set('edit-country', profileData.country);
-                set('edit-city', profileData.city);
-                set('edit-gender', profileData.gender);
-                set('edit-bio', profileData.bio);
-                set('edit-premium', String(profileData.premium));
-                const modal = document.getElementById('edit-profile-modal');
-                if (modal) modal.classList.add('show');
+                alert('Редактирование анкеты перенесено в бота. Используйте /profile в чате с ботом, чтобы обновить данные и добавить фото.');
             };
 
             window.closeEditProfile = function() {
@@ -1856,48 +2199,7 @@
             };
 
             window.saveProfileEdit = async function() {
-                const get = (id) => document.getElementById(id);
-                const editNameEl = get('edit-name');
-                const editAgeEl = get('edit-age');
-                const editCountryEl = get('edit-country');
-                const editCityEl = get('edit-city');
-                const editGenderEl = get('edit-gender');
-                const editBioEl = get('edit-bio');
-                const editPremiumEl = get('edit-premium');
-
-                profileData.name = String((editNameEl && editNameEl.value) || profileData.name).trim();
-                profileData.age = Number((editAgeEl && editAgeEl.value) || profileData.age);
-                profileData.country = String((editCountryEl && editCountryEl.value) || profileData.country).trim();
-                profileData.city = String((editCityEl && editCityEl.value) || profileData.city).trim();
-                profileData.gender = (editGenderEl && editGenderEl.value) || profileData.gender;
-                profileData.bio = String((editBioEl && editBioEl.value) || profileData.bio).trim();
-                profileData.premium = ((editPremiumEl && editPremiumEl.value) || 'false') === 'true';
-                if (!profileData.name) profileData.name = 'User';
-                if (!Number.isFinite(profileData.age) || profileData.age < 18) profileData.age = 18;
-                if (profileData.age > 80) profileData.age = 80;
-                localStorage.setItem(storageKeyProfile, JSON.stringify(profileData));
-
-                if (initData) {
-                    try {
-                        await apiRequest('/api/profile', {
-                            method: 'PUT',
-                            body: JSON.stringify({
-                                first_name: profileData.name,
-                                age: profileData.age,
-                                bio: profileData.bio,
-                                city: profileData.city,
-                                country: profileData.country,
-                                gender: profileData.gender,
-                                is_premium: profileData.premium,
-                            }),
-                        });
-                    } catch (e) {
-                        alert('Профиль не сохранен на сервере. Проверьте соединение и попробуйте снова.');
-                    }
-                }
-
-                renderProfile();
-                closeEditProfile();
+                window.openEditProfile();
             };
 
             window.updateUserCard = function() {
@@ -1936,6 +2238,8 @@
                 if (interests) {
                     interests.innerHTML = (user.interests || []).map(i => `<span class="interest-tag">${i}</span>`).join('');
                 }
+                const photoArea = document.querySelector('.photo-area');
+                applyPhotoToElement(photoArea, (user.photos_urls || [])[0] || user.primary_photo_url);
             };
 
             window.swipe = function(type) {
@@ -2039,6 +2343,30 @@
                 });
             }
 
+            const gamingBackBtn = document.getElementById('gaming-back-btn');
+            if (gamingBackBtn) {
+                gamingBackBtn.addEventListener('click', () => {
+                    closeGamingRoom();
+                });
+            }
+
+            const gamingSendBtn = document.getElementById('gaming-thread-send');
+            if (gamingSendBtn) {
+                gamingSendBtn.addEventListener('click', () => {
+                    sendGamingRoomMessage();
+                });
+            }
+
+            const gamingInput = document.getElementById('gaming-thread-input');
+            if (gamingInput) {
+                gamingInput.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        sendGamingRoomMessage();
+                    }
+                });
+            }
+
             const matchMessageBtn = document.getElementById('match-message-btn');
             if (matchMessageBtn) {
                 matchMessageBtn.addEventListener('click', async () => {
@@ -2103,6 +2431,7 @@
                 refreshNotificationSummary();
                 loadMatchesFromApi();
                 loadMessagesInboxFromApi();
+                loadGamingRoomsFromApi();
                 setInterval(() => {
                     refreshNotificationSummary();
                 }, 10000);
