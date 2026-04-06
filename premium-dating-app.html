@@ -14,7 +14,7 @@
         
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: linear-gradient(145deg, #071018 0%, #13324a 46%, #09111f 100%);
+            background: linear-gradient(145deg, #0b1218 0%, #163142 48%, #0d131d 100%);
             min-height: 100vh;
             overflow-x: hidden;
             position: relative;
@@ -529,6 +529,7 @@
             color: #fff;
             border-radius: 10px;
             padding: 10px 12px;
+            font-size: 16px;
         }
 
         .thread-compose button {
@@ -737,7 +738,7 @@
             background: rgba(15, 23, 42, 0.5);
             color: #fff;
             outline: none;
-            font-size: 14px;
+            font-size: 16px;
         }
 
         .form-field textarea {
@@ -824,8 +825,8 @@
         }
 
         .community-hero {
-            background: linear-gradient(135deg, rgba(56, 189, 248, 0.18), rgba(99, 102, 241, 0.18), rgba(244, 114, 182, 0.14));
-            border: 1px solid rgba(255,255,255,0.16);
+            background: linear-gradient(135deg, rgba(245, 222, 179, 0.18), rgba(34, 211, 238, 0.13), rgba(16, 185, 129, 0.12));
+            border: 1px solid rgba(245, 222, 179, 0.24);
             border-radius: 24px;
             padding: 18px;
             margin-bottom: 16px;
@@ -833,13 +834,13 @@
         }
 
         .community-hero h2 {
-            color: #fff;
+            color: #f5e7cf;
             font-size: 24px;
             margin-bottom: 8px;
         }
 
         .community-hero p {
-            color: rgba(255,255,255,0.74);
+            color: rgba(247, 236, 218, 0.9);
             line-height: 1.45;
             font-size: 14px;
         }
@@ -855,7 +856,7 @@
             overflow: hidden;
             border-radius: 22px;
             padding: 18px;
-            border: 1px solid rgba(255,255,255,0.14);
+            border: 1px solid rgba(245, 222, 179, 0.24);
             background: rgba(255,255,255,0.08);
             backdrop-filter: blur(14px);
             box-shadow: 0 14px 40px rgba(15, 23, 42, 0.24);
@@ -865,24 +866,24 @@
 
         .room-card:hover {
             transform: translateY(-2px);
-            border-color: rgba(255,255,255,0.26);
-            background: rgba(255,255,255,0.11);
+            border-color: rgba(245, 222, 179, 0.44);
+            background: rgba(245, 222, 179, 0.11);
         }
 
         .room-card::before {
             content: '';
             position: absolute;
             inset: 0;
-            background: radial-gradient(circle at top right, rgba(255,255,255,0.16), transparent 42%);
+            background: radial-gradient(circle at top right, rgba(245, 222, 179, 0.24), transparent 42%);
             pointer-events: none;
         }
 
         .room-card.dota2 {
-            background-image: linear-gradient(135deg, rgba(185, 28, 28, 0.26), rgba(30, 41, 59, 0.4));
+            background-image: linear-gradient(135deg, rgba(120, 53, 15, 0.3), rgba(17, 24, 39, 0.4));
         }
 
         .room-card.cs2 {
-            background-image: linear-gradient(135deg, rgba(234, 88, 12, 0.26), rgba(15, 23, 42, 0.4));
+            background-image: linear-gradient(135deg, rgba(180, 83, 9, 0.28), rgba(15, 23, 42, 0.4));
         }
 
         .room-top {
@@ -923,12 +924,12 @@
         }
 
         .room-tag {
-            color: #fff;
+            color: #f9efe0;
             font-size: 11px;
             padding: 5px 9px;
             border-radius: 999px;
-            background: rgba(255,255,255,0.12);
-            border: 1px solid rgba(255,255,255,0.12);
+            background: rgba(245, 222, 179, 0.14);
+            border: 1px solid rgba(245, 222, 179, 0.24);
         }
 
         .gaming-thread {
@@ -947,24 +948,26 @@
             position: sticky;
             bottom: 92px;
             padding-top: 12px;
-            background: linear-gradient(180deg, rgba(15,23,42,0), rgba(15,23,42,0.88) 35%);
+            background: linear-gradient(180deg, rgba(15,23,42,0), rgba(9,18,28,0.9) 35%);
         }
 
         .gaming-compose input {
             flex: 1;
             border-radius: 14px;
-            border: 1px solid rgba(255,255,255,0.16);
-            background: rgba(255,255,255,0.08);
-            color: #fff;
+            border: 1px solid rgba(245, 222, 179, 0.34);
+            background: rgba(245, 222, 179, 0.1);
+            color: #fff9f0;
             padding: 12px 14px;
+            font-size: 16px;
+            line-height: 1.35;
         }
 
         .gaming-compose button {
             border: none;
             border-radius: 14px;
             padding: 0 16px;
-            background: linear-gradient(135deg, #22c55e, #06b6d4);
-            color: #04111f;
+            background: linear-gradient(135deg, #f5deb3, #d6b784);
+            color: #2a1b0b;
             font-weight: 800;
         }
 
