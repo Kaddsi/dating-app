@@ -1672,6 +1672,7 @@
             let activeThreadUserName = '';
             let activeGamingRoom = '';
             let activeGamingRoomName = '';
+            let discoverLoadError = '';
 
             function getCurrentUser() {
                 if (!tg || !tg.initDataUnsafe || !tg.initDataUnsafe.user) return null;
@@ -1731,16 +1732,19 @@
             async function loadDiscoverFromApi() {
                 if (!initData) return;
                 try {
+                    discoverLoadError = '';
                     const data = await apiRequest('/api/discover?limit=20');
                     if (!data || !Array.isArray(data.users)) {
                         users.splice(0, users.length);
                         currentUserIndex = 0;
+                        discoverLoadError = 'API вернул некорректный ответ';
                         return;
                     }
                     if (data.users.length === 0) {
                         // Real API responded with no candidates; clear demo leftovers.
                         users.splice(0, users.length);
                         currentUserIndex = 0;
+                        discoverLoadError = '';
                         return;
                     }
                     const mapped = data.users.map((u) => ({
@@ -1762,6 +1766,7 @@
                 } catch (e) {
                     users.splice(0, users.length);
                     currentUserIndex = 0;
+                    discoverLoadError = String((e && e.message) || 'Не удалось загрузить анкеты');
                 }
             }
 
@@ -2216,7 +2221,7 @@
                                     <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
                                 </svg>
                                 <h3>${T.allViewedTitle}</h3>
-                                <p>${T.allViewedDesc}</p>
+                                <p>${discoverLoadError || T.allViewedDesc}</p>
                             </div>
                         `;
                     }
