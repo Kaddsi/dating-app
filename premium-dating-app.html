@@ -1623,8 +1623,9 @@
             // Never show demo cards in Telegram mode before API data arrives.
             users.splice(0, users.length);
             currentUserIndex = 0;
+        } else {
+            updateUserCard();
         }
-        updateUserCard();
     </script>
 
     <script>
