@@ -590,10 +590,6 @@ async def get_discover_users(
             AND u.is_active = TRUE
             AND u.is_blocked = FALSE
             AND NOT EXISTS (
-                SELECT 1 FROM swipes s
-                WHERE s.from_user_id = $1 AND s.to_user_id = u.id
-            )
-            AND NOT EXISTS (
                 SELECT 1 FROM user_blocks b
                 WHERE (b.blocker_id = $1 AND b.blocked_id = u.id)
                      OR (b.blocker_id = u.id AND b.blocked_id = $1)
