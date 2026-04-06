@@ -1730,7 +1730,12 @@
             }
 
             async function loadDiscoverFromApi() {
-                if (!initData) return;
+                if (!initData) {
+                    users.splice(0, users.length);
+                    currentUserIndex = 0;
+                    discoverLoadError = 'Нет Telegram-авторизации (initData). Откройте mini app кнопкой из бота.';
+                    return;
+                }
                 try {
                     discoverLoadError = '';
                     const data = await apiRequest('/api/discover?limit=20');
