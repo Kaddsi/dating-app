@@ -570,7 +570,7 @@ async def get_discover_users(
         return {"users": candidate_users[:safe_limit]}
     
     async with pool.acquire() as conn:
-        # Base query: show all active users (soft filters only)
+        # Base query: show all active users with gender filter
         query = """
         SELECT
             u.id,
@@ -593,6 +593,7 @@ async def get_discover_users(
         WHERE u.id != $1
             AND u.is_active = TRUE
             AND u.is_blocked = FALSE
+            AND ($4 = 'everyone' OR u.gender = $4)
             AND NOT EXISTS (
                 SELECT 1 FROM matches m
                 WHERE m.is_active = TRUE
@@ -614,6 +615,7 @@ async def get_discover_users(
             current_user['id'],
             current_user.get('location'),
             safe_limit,
+            looking_for,
         )
 
     return {
