@@ -470,11 +470,15 @@
             flex-direction: column;
             gap: 10px;
             min-height: 60vh;
-            padding-bottom: 80px;
+            padding-bottom: calc(92px + env(safe-area-inset-bottom));
         }
 
         .thread-wrap.active {
             display: flex;
+        }
+
+        body.keyboard-open .thread-wrap {
+            padding-bottom: calc(12px + env(safe-area-inset-bottom));
         }
 
         .thread-header {
@@ -940,22 +944,24 @@
 
         .gaming-thread {
             display: none;
-            padding-bottom: calc(170px + env(safe-area-inset-bottom));
+            padding-bottom: calc(100px + env(safe-area-inset-bottom));
         }
 
         .gaming-thread.active {
-            display: block;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
         }
 
         .gaming-compose {
             display: flex;
             gap: 8px;
-            margin-top: 0;
-            position: fixed;
-            left: 50%;
-            transform: translateX(-50%);
-            width: calc(100% - 40px);
-            max-width: 410px;
+            margin-top: auto;
+            position: sticky;
+            left: auto;
+            transform: none;
+            width: 100%;
+            max-width: none;
             bottom: calc(74px + env(safe-area-inset-bottom));
             padding-top: 8px;
             background: linear-gradient(180deg, rgba(15,23,42,0), rgba(9,18,28,0.9) 35%);
@@ -2392,6 +2398,19 @@
                         sendGamingRoomMessage();
                     }
                 });
+            }
+
+            function syncKeyboardState() {
+                if (!window.visualViewport) return;
+                const keyboardHeight = Math.max(0, window.innerHeight - window.visualViewport.height - window.visualViewport.offsetTop);
+                document.body.classList.toggle('keyboard-open', keyboardHeight > 120);
+            }
+
+            if (window.visualViewport) {
+                window.visualViewport.addEventListener('resize', syncKeyboardState);
+                window.visualViewport.addEventListener('scroll', syncKeyboardState);
+                window.addEventListener('resize', syncKeyboardState);
+                syncKeyboardState();
             }
 
             const matchMessageBtn = document.getElementById('match-message-btn');
