@@ -178,6 +178,47 @@
             position: relative;
         }
         
+        .photo-nav-btn {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 40px;
+            height: 40px;
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(255, 255, 255, 0.25);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            z-index: 10;
+            color: white;
+        }
+        
+        .photo-nav-btn:hover {
+            background: rgba(255, 255, 255, 0.25);
+            border-color: rgba(255, 255, 255, 0.4);
+        }
+        
+        .photo-nav-btn:active {
+            transform: translateY(-50%) scale(0.95);
+        }
+        
+        .photo-nav-btn.prev {
+            left: 12px;
+        }
+        
+        .photo-nav-btn.next {
+            right: 12px;
+        }
+        
+        .photo-nav-btn svg {
+            width: 20px;
+            height: 20px;
+        }
+        
         .user-info {
             background: rgba(255, 255, 255, 0.05);
             backdrop-filter: blur(8px);
@@ -1037,11 +1078,21 @@
                     <div class="photo-indicator"></div>
                 </div>
                 
-                <div class="photo-area">
+                <div class="photo-area" id="photo-area-main">
                     <div class="photo-gradient"></div>
+                    <button class="photo-nav-btn prev" id="photo-prev" style="display: none;">
+                        <svg fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                        </svg>
+                    </button>
                     <svg class="photo-placeholder" fill="currentColor" viewBox="0 0 20 20">
                         <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"/>
                     </svg>
+                    <button class="photo-nav-btn next" id="photo-next" style="display: none;">
+                        <svg fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"/>
+                        </svg>
+                    </button>
                 </div>
                 
                 <div class="user-info">
@@ -1490,6 +1541,7 @@
 
         const users = usersByLang[LANG] || usersByLang.en;
         let currentUserIndex = 0;
+        let currentPhotoIndex = 0;
 
         function applyLocalization() {
             document.documentElement.lang = LANG;
@@ -1559,6 +1611,71 @@
             event.currentTarget.classList.add('active');
         }
         
+        // Переключить фото влево
+        function prevPhoto() {
+            if (currentPhotoIndex > 0) {
+                currentPhotoIndex--;
+                updatePhotoDisplay();
+            }
+        }
+        
+        // Переключить фото вправо
+        function nextPhoto() {
+            const user = users[currentUserIndex];
+            const photosCount = (Array.isArray(user.photos_urls) && user.photos_urls.length) || 0;
+            if (currentPhotoIndex < photosCount - 1) {
+                currentPhotoIndex++;
+                updatePhotoDisplay();
+            }
+        }
+        
+        // Обновить отображение фото
+        function updatePhotoDisplay() {
+            const user = users[currentUserIndex];
+            const photoArea = document.getElementById('photo-area-main');
+            const prevBtn = document.getElementById('photo-prev');
+            const nextBtn = document.getElementById('photo-next');
+            const indicators = document.querySelectorAll('.photo-indicator');
+            
+            if (!photoArea) return;
+            
+            const photosArray = Array.isArray(user.photos_urls) ? user.photos_urls.filter(Boolean) : [];
+            const primaryPhoto = user.primary_photo_url;
+            
+            // Формируем полный список фото с основной впереди
+            let allPhotos = [];
+            if (primaryPhoto) allPhotos.push(primaryPhoto);
+            photosArray.forEach(p => {
+                if (p !== primaryPhoto) allPhotos.push(p);
+            });
+            
+            // Ограничиваем 4 фото
+            allPhotos = allPhotos.slice(0, 4);
+            
+            // Отображаем текущее фото
+            const currentPhoto = allPhotos[currentPhotoIndex] || null;
+            applyPhotoToElement(photoArea, currentPhoto);
+            
+            // Обновляем индикаторы
+            indicators.forEach((ind, idx) => {
+                if (idx < allPhotos.length) {
+                    ind.style.display = '';
+                    ind.classList.toggle('active', idx === currentPhotoIndex);
+                } else {
+                    ind.style.display = 'none';
+                }
+            });
+            
+            // Показываем/скрываем кнопки навигации
+            if (allPhotos.length > 1) {
+                prevBtn.style.display = currentPhotoIndex > 0 ? 'flex' : 'none';
+                nextBtn.style.display = currentPhotoIndex < allPhotos.length - 1 ? 'flex' : 'none';
+            } else {
+                prevBtn.style.display = 'none';
+                nextBtn.style.display = 'none';
+            }
+        }
+        
         // Обновить карточку пользователя
         function updateUserCard() {
             if (currentUserIndex >= users.length) {
@@ -1575,6 +1692,7 @@
                 return;
             }
             
+            currentPhotoIndex = 0;
             const user = users[currentUserIndex];
             document.getElementById('user-name').textContent = user.name;
             document.getElementById('user-age').textContent = user.age;
@@ -1605,6 +1723,9 @@
                 `<span class="interest-tag">${i}</span>`
             ).join('');
             document.getElementById('user-interests').innerHTML = interestsHtml;
+            
+            // Обновить фото и индикаторы
+            updatePhotoDisplay();
         }
         
         // Свайп
@@ -1639,6 +1760,12 @@
             document.getElementById('match-modal').classList.remove('show');
             showScreen('matches');
         }
+        
+        // Привязать события к кнопкам навигации
+        const photoPrevBtn = document.getElementById('photo-prev');
+        const photoNextBtn = document.getElementById('photo-next');
+        if (photoPrevBtn) photoPrevBtn.addEventListener('click', prevPhoto);
+        if (photoNextBtn) photoNextBtn.addEventListener('click', nextPhoto);
         
         // Инициализация
         applyLocalization();
