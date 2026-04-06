@@ -519,11 +519,8 @@ async def get_discover_users(
     current_user: dict = Depends(get_current_user),
     pool: asyncpg.Pool = Depends(get_db_pool),
 ):
-    """Get potential matches."""
+    """Get all active users by default, with optional filters (age, gender, location, premium)."""
     safe_limit = max(1, min(limit, 50))
-    # Keep location preferences in dedicated filters; do not hard-bind discover to profile city/country.
-    current_country = ''
-    current_city = ''
     looking_for = (current_user.get('looking_for') or 'everyone').strip().lower()
     age_min = int(current_user.get('age_min') or 18)
     age_max = int(current_user.get('age_max') or 99)
@@ -533,21 +530,16 @@ async def get_discover_users(
     max_distance = max(1, min(max_distance, 500))
 
     if RUN_WITHOUT_DB or pool is None:
-        # Return other in-memory profiles without strict city/country tie.
+        # Return all in-memory profiles without strict requirements
         print(f"🔍 Discovering for user {current_user['id']}")
         candidate_users = []
         for user_id, profile in mock_profiles.items():
-            print(f"  Checking user {user_id}: completed={profile.get('profile_completed')}")
             if user_id == int(current_user['id']):
-                print(f"    ❌ Skip: same user")
                 continue
-            if not profile.get('profile_completed'):
-                print(f"    ❌ Skip: profile not completed")
-                continue
-            if looking_for != 'everyone' and (profile.get('gender') or '').strip().lower() != looking_for:
-                print(f"    ❌ Skip: gender mismatch")
-                continue
-            print(f"    ✅ Match found!")
+            # Apply optional gender filter
+            if looking_for != 'everyone' and profile.get('gender'):
+                if (profile.get('gender') or '').strip().lower() != looking_for:
+                    continue
             candidate_users.append(
                 {
                     "id": profile['id'],
@@ -558,9 +550,9 @@ async def get_discover_users(
                     "interests": ["💬 Chat"],
                     "city": profile.get('city') or '',
                     "country": profile.get('country') or '',
-                    "gender": profile.get('gender') or 'female',
+                    "gender": profile.get('gender') or 'unknown',
                     "is_premium": bool(profile.get('is_premium', False)),
-                    "distance": 5.0,
+                    "distance": None,
                 }
             )
 
@@ -570,125 +562,59 @@ async def get_discover_users(
                 int(u['id']),
             )
         )
-        print(f"📊 Found {len(candidate_users)} matches for user {current_user['id']}")
-        return {
-            "users": candidate_users[:safe_limit]
-        }
+        print(f"📊 Found {len(candidate_users)} candidates for user {current_user['id']}")
+        return {"users": candidate_users[:safe_limit]}
     
     async with pool.acquire() as conn:
-        if current_user.get('location'):
-            query = """
-            SELECT
-                u.id,
-                u.first_name,
-                u.bio,
-                u.photos_urls,
-                u.primary_photo_url,
-                u.is_premium,
-                u.interests,
-                u.city,
-                u.country,
-                u.gender,
-                EXTRACT(YEAR FROM AGE(u.birthdate)) as age,
-                CASE
-                    WHEN u.location IS NOT NULL THEN ST_Distance(u.location::geography, $2::geography) / 1000
-                    ELSE NULL::float
-                END as distance
-            FROM users u
-            WHERE u.id != $1
-                AND u.is_active = TRUE
-                AND u.is_blocked = FALSE
-                AND u.profile_completed = TRUE
-                AND (
-                    u.location IS NULL
-                    OR ST_Distance(u.location::geography, $2::geography) / 1000 <= $6
-                )
-                AND ($7::text = 'everyone' OR LOWER(COALESCE(u.gender, '')) = LOWER($7))
-                AND EXTRACT(YEAR FROM AGE(u.birthdate)) BETWEEN $8 AND $9
-                AND ($4::text = '' OR LOWER(COALESCE(u.country, '')) = LOWER($4))
-                AND ($5::text = '' OR LOWER(COALESCE(u.city, '')) = LOWER($5))
-                AND u.first_name IS NOT NULL AND u.first_name <> ''
-                AND u.birthdate IS NOT NULL
-                AND u.gender IS NOT NULL AND u.gender <> ''
-                AND u.city IS NOT NULL AND u.city <> ''
-                AND u.country IS NOT NULL AND u.country <> ''
-                AND CARDINALITY(COALESCE(u.photos_urls, ARRAY[]::text[])) > 0
-                AND NOT EXISTS (
-                    SELECT 1 FROM swipes s
-                    WHERE s.from_user_id = $1 AND s.to_user_id = u.id
-                )
-                AND NOT EXISTS (
-                    SELECT 1 FROM user_blocks b
-                    WHERE (b.blocker_id = $1 AND b.blocked_id = u.id)
-                         OR (b.blocker_id = u.id AND b.blocked_id = $1)
-                )
-            ORDER BY distance ASC
-            LIMIT $3
-            """
-            users = await conn.fetch(
-                query,
-                current_user['id'],
-                current_user['location'],
-                safe_limit,
-                current_country,
-                current_city,
-                max_distance,
-                looking_for,
-                age_min,
-                age_max,
+        # Base query: show all active users (soft filters only)
+        query = """
+        SELECT
+            u.id,
+            u.first_name,
+            u.bio,
+            u.photos_urls,
+            u.primary_photo_url,
+            u.is_premium,
+            u.interests,
+            u.city,
+            u.country,
+            u.gender,
+            EXTRACT(YEAR FROM AGE(u.birthdate)) as age,
+            CASE
+                WHEN u.location IS NOT NULL AND $2::geography IS NOT NULL 
+                THEN ST_Distance(u.location::geography, $2::geography) / 1000
+                ELSE NULL::float
+            END as distance
+        FROM users u
+        WHERE u.id != $1
+            AND u.is_active = TRUE
+            AND u.is_blocked = FALSE
+            AND NOT EXISTS (
+                SELECT 1 FROM swipes s
+                WHERE s.from_user_id = $1 AND s.to_user_id = u.id
             )
-        else:
-            query = """
-            SELECT
-                u.id,
-                u.first_name,
-                u.bio,
-                u.photos_urls,
-                u.primary_photo_url,
-                u.is_premium,
-                u.interests,
-                u.city,
-                u.country,
-                u.gender,
-                EXTRACT(YEAR FROM AGE(u.birthdate)) as age,
-                NULL::float as distance
-            FROM users u
-            WHERE u.id != $1
-                AND u.is_active = TRUE
-                AND u.is_blocked = FALSE
-                AND u.profile_completed = TRUE
-                AND ($3::text = '' OR LOWER(COALESCE(u.country, '')) = LOWER($3))
-                AND ($4::text = '' OR LOWER(COALESCE(u.city, '')) = LOWER($4))
-                AND ($5::text = 'everyone' OR LOWER(COALESCE(u.gender, '')) = LOWER($5))
-                AND EXTRACT(YEAR FROM AGE(u.birthdate)) BETWEEN $6 AND $7
-                AND u.first_name IS NOT NULL AND u.first_name <> ''
-                AND u.birthdate IS NOT NULL
-                AND u.gender IS NOT NULL AND u.gender <> ''
-                AND u.city IS NOT NULL AND u.city <> ''
-                AND u.country IS NOT NULL AND u.country <> ''
-                AND CARDINALITY(COALESCE(u.photos_urls, ARRAY[]::text[])) > 0
-                AND NOT EXISTS (
-                    SELECT 1 FROM swipes s
-                    WHERE s.from_user_id = $1 AND s.to_user_id = u.id
-                )
-                AND NOT EXISTS (
-                    SELECT 1 FROM user_blocks b
-                    WHERE (b.blocker_id = $1 AND b.blocked_id = u.id)
-                         OR (b.blocker_id = u.id AND b.blocked_id = $1)
-                )
-            ORDER BY u.last_active DESC NULLS LAST
-            LIMIT $2
-            """
-            users = await conn.fetch(
-                query,
-                current_user['id'],
-                safe_limit,
-                current_country,
-                current_city,
-                looking_for,
-                age_min,
-                age_max,
+            AND NOT EXISTS (
+                SELECT 1 FROM user_blocks b
+                WHERE (b.blocker_id = $1 AND b.blocked_id = u.id)
+                     OR (b.blocker_id = u.id AND b.blocked_id = $1)
             )
+            -- Optional filters (only if filters are set and candidate has the data)
+            AND ($3::text = 'everyone' OR u.gender IS NULL OR LOWER(u.gender) = LOWER($3))
+            AND (u.birthdate IS NULL OR EXTRACT(YEAR FROM AGE(u.birthdate)) BETWEEN $4 AND $5)
+            AND (u.location IS NULL OR $2::geography IS NULL OR ST_Distance(u.location::geography, $2::geography) / 1000 <= $6)
+        ORDER BY u.id DESC
+        LIMIT $7
+        """
+        users = await conn.fetch(
+            query,
+            current_user['id'],
+            current_user.get('location'),
+            looking_for,
+            age_min,
+            age_max,
+            max_distance,
+            safe_limit,
+        )
 
     return {
         "users": [
