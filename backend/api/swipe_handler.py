@@ -604,21 +604,6 @@ async def get_discover_users(
             safe_limit,
         )
 
-    try:
-        result_ids = [int(u['id']) for u in users]
-        print(
-            "🔎 DISCOVER",
-            {
-                "user_id": int(current_user.get('id') or 0),
-                "telegram_id": int(current_user.get('telegram_id') or 0),
-                "limit": safe_limit,
-                "result_count": len(result_ids),
-                "result_ids": result_ids[:10],
-            },
-        )
-    except Exception:
-        pass
-
     return {
         "users": [
             {

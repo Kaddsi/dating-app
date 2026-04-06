@@ -14,7 +14,7 @@
         
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: linear-gradient(135deg, #0f172a 0%, #312e81 50%, #0f172a 100%);
+            background: linear-gradient(145deg, #071018 0%, #13324a 46%, #09111f 100%);
             min-height: 100vh;
             overflow-x: hidden;
             position: relative;
@@ -35,7 +35,7 @@
             left: 40px;
             width: 200px;
             height: 200px;
-            background: #6366f1;
+            background: #22d3ee;
         }
         
         .bg-blob-2 {
@@ -43,7 +43,7 @@
             right: 40px;
             width: 250px;
             height: 250px;
-            background: #a855f7;
+            background: #10b981;
             animation-delay: 1s;
         }
         
@@ -77,7 +77,7 @@
             padding: 12px 20px;
             font-size: 18px;
             font-weight: 600;
-            background: linear-gradient(135deg, #a5b4fc, #c084fc);
+            background: linear-gradient(135deg, #7dd3fc, #5eead4);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
@@ -126,13 +126,13 @@
         
         /* Карточка пользователя */
         .user-card {
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.2);
+            background: rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(125, 211, 252, 0.26);
             border-radius: 24px;
             padding: 20px;
             margin-bottom: 24px;
-            box-shadow: 0 8px 32px rgba(31, 38, 135, 0.37);
+            box-shadow: 0 10px 36px rgba(0, 0, 0, 0.36);
             position: relative;
         }
         
@@ -154,7 +154,7 @@
         }
         
         .photo-area {
-            background: linear-gradient(135deg, rgba(99, 102, 241, 0.4), rgba(168, 85, 247, 0.4));
+            background: linear-gradient(135deg, rgba(34, 211, 238, 0.34), rgba(16, 185, 129, 0.32));
             height: 380px;
             border-radius: 16px;
             margin-bottom: 16px;
@@ -207,7 +207,7 @@
         .verified-badge {
             width: 18px;
             height: 18px;
-            color: #818cf8;
+            color: #22d3ee;
         }
         
         .user-bio {
@@ -238,9 +238,9 @@
         }
         
         .interest-tag {
-            background: rgba(99, 102, 241, 0.3);
-            color: rgba(199, 210, 254, 1);
-            border: 1px solid rgba(99, 102, 241, 0.4);
+            background: rgba(34, 211, 238, 0.2);
+            color: #cffafe;
+            border: 1px solid rgba(34, 211, 238, 0.35);
             padding: 4px 10px;
             border-radius: 12px;
             font-size: 12px;
@@ -288,14 +288,14 @@
         .action-btn.superlike {
             width: 52px;
             height: 52px;
-            background: linear-gradient(135deg, rgba(99, 102, 241, 0.3), rgba(168, 85, 247, 0.3));
-            border-color: rgba(129, 140, 248, 0.4);
+            background: linear-gradient(135deg, rgba(34, 211, 238, 0.28), rgba(16, 185, 129, 0.28));
+            border-color: rgba(94, 234, 212, 0.45);
         }
         
         .action-btn.superlike svg {
             width: 24px;
             height: 24px;
-            color: #a5b4fc;
+            color: #67e8f9;
         }
         
         .action-btn.like {
@@ -318,7 +318,7 @@
             transform: translateX(-50%);
             width: 100%;
             max-width: 450px;
-            background: rgba(15, 23, 42, 0.95);
+            background: rgba(5, 12, 22, 0.92);
             backdrop-filter: blur(12px);
             border-top: 1px solid rgba(255, 255, 255, 0.1);
             padding: 12px 20px;
@@ -345,7 +345,7 @@
         }
         
         .nav-btn.active {
-            color: #6366f1;
+            color: #22d3ee;
         }
         
         .nav-btn svg {
@@ -1673,7 +1673,6 @@
             let activeThreadUserName = '';
             let activeGamingRoom = '';
             let activeGamingRoomName = '';
-            let discoverLoadError = '';
 
             function getCurrentUser() {
                 if (!tg || !tg.initDataUnsafe || !tg.initDataUnsafe.user) return null;
@@ -1734,23 +1733,19 @@
                 if (!initData) {
                     users.splice(0, users.length);
                     currentUserIndex = 0;
-                    discoverLoadError = 'Нет Telegram-авторизации (initData). Откройте mini app кнопкой из бота.';
                     return;
                 }
                 try {
-                    discoverLoadError = '';
                     const data = await apiRequest('/api/discover?limit=20');
                     if (!data || !Array.isArray(data.users)) {
                         users.splice(0, users.length);
                         currentUserIndex = 0;
-                        discoverLoadError = 'API вернул некорректный ответ';
                         return;
                     }
                     if (data.users.length === 0) {
                         // Real API responded with no candidates; clear demo leftovers.
                         users.splice(0, users.length);
                         currentUserIndex = 0;
-                        discoverLoadError = '';
                         return;
                     }
                     const mapped = data.users.map((u) => ({
@@ -1772,7 +1767,6 @@
                 } catch (e) {
                     users.splice(0, users.length);
                     currentUserIndex = 0;
-                    discoverLoadError = String((e && e.message) || 'Не удалось загрузить анкеты');
                 }
             }
 
@@ -2227,7 +2221,7 @@
                                     <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
                                 </svg>
                                 <h3>${T.allViewedTitle}</h3>
-                                <p>${discoverLoadError || T.allViewedDesc}</p>
+                                <p>${T.allViewedDesc}</p>
                             </div>
                         `;
                     }
