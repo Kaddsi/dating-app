@@ -345,7 +345,13 @@
         }
         
         .nav-btn.active {
-            color: #22d3ee;
+            color: #facc15;
+        }
+
+        body.keyboard-open .bottom-nav {
+            opacity: 0;
+            pointer-events: none;
+            transform: translateX(-50%) translateY(120%);
         }
         
         .nav-btn svg {
@@ -533,9 +539,9 @@
         }
 
         .thread-compose button {
-            border: 1px solid rgba(99, 102, 241, 0.5);
-            background: rgba(99, 102, 241, 0.35);
-            color: #fff;
+            border: 1px solid rgba(250, 204, 21, 0.5);
+            background: rgba(250, 204, 21, 0.25);
+            color: #fff8e1;
             border-radius: 10px;
             padding: 10px 14px;
             cursor: pointer;
@@ -664,8 +670,8 @@
         .match-modal button {
             width: 100%;
             padding: 14px;
-            background: #6366f1;
-            color: white;
+            background: linear-gradient(135deg, #facc15, #eab308);
+            color: #2a1b0b;
             border: none;
             border-radius: 12px;
             font-weight: 600;
@@ -675,7 +681,7 @@
         }
         
         .match-modal button:hover {
-            background: #4f46e5;
+            background: linear-gradient(135deg, #fde047, #f59e0b);
         }
         
         /* Пустое состояние */
@@ -763,8 +769,8 @@
         }
 
         .primary-btn {
-            background: linear-gradient(135deg, #6366f1, #8b5cf6);
-            color: white;
+            background: linear-gradient(135deg, #facc15, #f59e0b);
+            color: #2a1b0b;
             flex: 1;
         }
 
@@ -934,7 +940,7 @@
 
         .gaming-thread {
             display: none;
-            padding-bottom: 88px;
+            padding-bottom: calc(170px + env(safe-area-inset-bottom));
         }
 
         .gaming-thread.active {
@@ -944,11 +950,20 @@
         .gaming-compose {
             display: flex;
             gap: 8px;
-            margin-top: 12px;
-            position: sticky;
-            bottom: 92px;
-            padding-top: 12px;
+            margin-top: 0;
+            position: fixed;
+            left: 50%;
+            transform: translateX(-50%);
+            width: calc(100% - 40px);
+            max-width: 410px;
+            bottom: calc(74px + env(safe-area-inset-bottom));
+            padding-top: 8px;
             background: linear-gradient(180deg, rgba(15,23,42,0), rgba(9,18,28,0.9) 35%);
+            z-index: 120;
+        }
+
+        body.keyboard-open .gaming-compose {
+            bottom: calc(8px + env(safe-area-inset-bottom));
         }
 
         .gaming-compose input {
@@ -1092,7 +1107,7 @@
                 </div>
                 <div id="thread-messages" class="thread-messages"></div>
                 <div class="thread-compose">
-                    <input id="thread-input" type="text" placeholder="Введите сообщение...">
+                    <input id="thread-input" type="text" placeholder="">
                     <button id="thread-send-btn" type="button">Отправить</button>
                 </div>
             </div>
@@ -1116,7 +1131,7 @@
                 <div class="gaming-welcome" id="gaming-room-welcome"></div>
                 <div id="gaming-thread-messages" class="thread-messages"></div>
                 <div class="gaming-compose">
-                    <input id="gaming-thread-input" type="text" placeholder="Напишите, в какую пати ищете людей...">
+                    <input id="gaming-thread-input" type="text" placeholder="">
                     <button id="gaming-thread-send" type="button">Отправить</button>
                 </div>
             </div>
@@ -2343,6 +2358,8 @@
 
             const threadInput = document.getElementById('thread-input');
             if (threadInput) {
+                threadInput.addEventListener('focus', () => document.body.classList.add('keyboard-open'));
+                threadInput.addEventListener('blur', () => document.body.classList.remove('keyboard-open'));
                 threadInput.addEventListener('keydown', (e) => {
                     if (e.key === 'Enter') {
                         e.preventDefault();
@@ -2367,6 +2384,8 @@
 
             const gamingInput = document.getElementById('gaming-thread-input');
             if (gamingInput) {
+                gamingInput.addEventListener('focus', () => document.body.classList.add('keyboard-open'));
+                gamingInput.addEventListener('blur', () => document.body.classList.remove('keyboard-open'));
                 gamingInput.addEventListener('keydown', (e) => {
                     if (e.key === 'Enter') {
                         e.preventDefault();
