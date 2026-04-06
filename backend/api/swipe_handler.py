@@ -594,21 +594,13 @@ async def get_discover_users(
                 WHERE (b.blocker_id = $1 AND b.blocked_id = u.id)
                      OR (b.blocker_id = u.id AND b.blocked_id = $1)
             )
-            -- Optional filters (only if filters are set and candidate has the data)
-            AND ($3::text = 'everyone' OR u.gender IS NULL OR LOWER(u.gender) = LOWER($3))
-            AND (u.birthdate IS NULL OR EXTRACT(YEAR FROM AGE(u.birthdate)) BETWEEN $4 AND $5)
-            AND (u.location IS NULL OR $2::geography IS NULL OR ST_Distance(u.location::geography, $2::geography) / 1000 <= $6)
         ORDER BY u.id DESC
-        LIMIT $7
+        LIMIT $3
         """
         users = await conn.fetch(
             query,
             current_user['id'],
             current_user.get('location'),
-            looking_for,
-            age_min,
-            age_max,
-            max_distance,
             safe_limit,
         )
 

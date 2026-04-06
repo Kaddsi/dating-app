@@ -2037,7 +2037,7 @@
             let filteredUsers = [...users];
             let filters = {
                 minAge: 18,
-                maxAge: 45,
+                maxAge: 99,
                 country: '',
                 city: '',
                 gender: 'any',
@@ -2055,7 +2055,7 @@
             if (tg) {
                 filters = {
                     minAge: 18,
-                    maxAge: 45,
+                    maxAge: 99,
                     country: '',
                     city: '',
                     gender: 'any',
@@ -2147,7 +2147,7 @@
                 const premiumEl = get('filter-premium');
 
                 filters.minAge = Number((minAgeEl && minAgeEl.value) || 18);
-                filters.maxAge = Number((maxAgeEl && maxAgeEl.value) || 45);
+                filters.maxAge = Number((maxAgeEl && maxAgeEl.value) || 99);
                 filters.country = String((countryEl && countryEl.value) || '').trim().toLowerCase();
                 filters.city = String((cityEl && cityEl.value) || '').trim().toLowerCase();
                 filters.gender = (genderEl && genderEl.value) || 'any';
