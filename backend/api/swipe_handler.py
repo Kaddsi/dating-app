@@ -17,6 +17,7 @@ from urllib.request import urlopen
 
 import asyncpg
 from aiogram import Bot
+from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from dotenv import load_dotenv
 from fastapi import Depends, FastAPI, Header, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -1755,44 +1756,76 @@ async def send_like_notification(receiver_tid: int, actor_name: str, swipe_type:
     if not bot:
         return
     emoji = "⭐" if swipe_type == "superlike" else "❤️"
+    like_text = "суперлайк" if swipe_type == "superlike" else "лайк"
+    
     text = (
-        f"{emoji} Новый интерес!\n\n"
-        f"{actor_name} проявил(а) к вам симпатию.\n"
-        "Откройте мини-приложение, чтобы посмотреть профиль."
+        f"{emoji} <b>Новый {like_text}!</b>\n\n"
+        f"<i>{actor_name}</i> проявил(а) к вам интерес 💕\n\n"
+        f"Откройте приложение, чтобы узнать больше"
     )
+    
+    keyboard = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="🎯 Посмотреть профиль", url="https://t.me/premiumdatingbot/premium")]
+    ])
+    
     try:
-        await bot.send_message(receiver_tid, text)
+        await bot.send_message(receiver_tid, text, parse_mode="HTML", reply_markup=keyboard)
     except Exception:
         return
 
 
 async def send_match_notification(user1_tid, user2_tid, user1_name, user2_name, send_to_user1: bool = True, send_to_user2: bool = True):
-    """Send match notifications via Telegram bot."""
+    """Send match notifications via Telegram bot with beautiful formatting."""
     if not bot:
         return
 
-    message = f"🎉 Совпадение!\n\nВы и {user2_name} понравились друг другу."
+    keyboard = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="💬 Открыть чат", url="https://t.me/premiumdatingbot/premium")],
+        [InlineKeyboardButton(text="👤 Посмотреть профиль", url="https://t.me/premiumdatingbot/premium")]
+    ])
+    
     try:
         if send_to_user1:
-            await bot.send_message(user1_tid, message)
+            message1 = (
+                f"💕 <b>Совпадение!</b>\n\n"
+                f"Вы и <i>{user2_name}</i> понравились друг другу!\n\n"
+                f"🎉 Поздравляем! Это взаимная любовь!\n"
+                f"Начните общение прямо сейчас →"
+            )
+            await bot.send_message(user1_tid, message1, parse_mode="HTML", reply_markup=keyboard)
+        
         if send_to_user2:
-            await bot.send_message(user2_tid, f"🎉 Совпадение!\n\nВы и {user1_name} понравились друг другу.")
+            message2 = (
+                f"💕 <b>Совпадение!</b>\n\n"
+                f"Вы и <i>{user1_name}</i> понравились друг другу!\n\n"
+                f"🎉 Поздравляем! Это взаимная любовь!\n"
+                f"Начните общение прямо сейчас →"
+            )
+            await bot.send_message(user2_tid, message2, parse_mode="HTML", reply_markup=keyboard)
     except Exception:
         # Notification failure should not break swipe API response.
         return
 
 
 async def send_message_notification(receiver_tid: int, sender_name: str, text: str):
-    """Send real-time new message notification."""
+    """Send real-time new message notification with beautiful formatting."""
     if not bot:
         return
-    preview = text if len(text) <= 80 else (text[:77] + "...")
+    preview = text if len(text) <= 70 else (text[:67] + "...")
+    
     body = (
-        f"💬 Новое сообщение от {sender_name}\n\n"
-        f"{preview}"
+        f"💬 <b>Новое сообщение</b>\n\n"
+        f"От: <i>{sender_name}</i>\n\n"
+        f"<code>{preview}</code>\n\n"
+        f"<i>Откройте приложение, чтобы ответить</i>"
     )
+    
+    keyboard = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="✉️ Ответить", url="https://t.me/premiumdatingbot/premium")]
+    ])
+    
     try:
-        await bot.send_message(receiver_tid, body)
+        await bot.send_message(receiver_tid, body, parse_mode="HTML", reply_markup=keyboard)
     except Exception:
         return
 
