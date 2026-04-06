@@ -536,6 +536,9 @@ async def get_discover_users(
         for user_id, profile in mock_profiles.items():
             if user_id == int(current_user['id']):
                 continue
+            match_key = _mock_match_key(int(current_user['id']), int(user_id))
+            if mock_matches.get(match_key, {}).get('is_active'):
+                continue
             # Apply optional gender filter
             if looking_for != 'everyone' and profile.get('gender'):
                 if (profile.get('gender') or '').strip().lower() != looking_for:
@@ -589,6 +592,14 @@ async def get_discover_users(
         WHERE u.id != $1
             AND u.is_active = TRUE
             AND u.is_blocked = FALSE
+            AND NOT EXISTS (
+                SELECT 1 FROM matches m
+                WHERE m.is_active = TRUE
+                    AND (
+                        (m.user1_id = $1 AND m.user2_id = u.id)
+                        OR (m.user1_id = u.id AND m.user2_id = $1)
+                    )
+            )
             AND NOT EXISTS (
                 SELECT 1 FROM user_blocks b
                 WHERE (b.blocker_id = $1 AND b.blocked_id = u.id)
