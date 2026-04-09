@@ -469,6 +469,34 @@
             border-radius: 14px;
             padding: 12px;
             cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .conversation-avatar {
+            width: 52px;
+            height: 52px;
+            border-radius: 50%;
+            flex-shrink: 0;
+            background: linear-gradient(135deg, rgba(34, 211, 238, 0.4), rgba(16, 185, 129, 0.4));
+            background-size: cover;
+            background-position: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        .conversation-avatar svg {
+            width: 24px;
+            height: 24px;
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        .conversation-body {
+            flex: 1;
+            min-width: 0;
         }
 
         .conversation-top {
@@ -476,7 +504,7 @@
             align-items: center;
             justify-content: space-between;
             gap: 8px;
-            margin-bottom: 6px;
+            margin-bottom: 4px;
         }
 
         .conversation-name {
@@ -1609,6 +1637,12 @@
             // Обновить навигацию
             document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
             event.currentTarget.classList.add('active');
+            
+            // Скрыть хедер на всех экранах кроме Discovery
+            const header = document.querySelector('.header');
+            if (header) {
+                header.style.display = (screenName === 'discovery') ? '' : 'none';
+            }
         }
         
         // Переключить фото влево
@@ -1980,13 +2014,21 @@
                     list.innerHTML = inboxMatches.map((m) => {
                         const last = m.last_message || 'Начните общение';
                         const unread = Number(m.unread_count || 0);
+                        const avatarStyle = m.primary_photo_url
+                            ? `style="background-image:url('${String(m.primary_photo_url).replace(/'/g, '&#39;')}');background-size:cover;background-position:center;"`
+                            : '';
                         return `
                             <div class="conversation-card" data-match-id="${m.match_id}" data-user-name="${(m.first_name || 'User').replace(/"/g, '&quot;')}">
-                                <div class="conversation-top">
-                                    <div class="conversation-name">${m.first_name || 'User'}</div>
-                                    ${unread > 0 ? `<div class="conversation-unread">${unread}</div>` : ''}
+                                <div class="conversation-avatar" ${avatarStyle}>
+                                    ${!m.primary_photo_url ? '<svg fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"/></svg>' : ''}
                                 </div>
-                                <div class="conversation-last">${last}</div>
+                                <div class="conversation-body">
+                                    <div class="conversation-top">
+                                        <div class="conversation-name">${m.first_name || 'User'}</div>
+                                        ${unread > 0 ? `<div class="conversation-unread">${unread}</div>` : ''}
+                                    </div>
+                                    <div class="conversation-last">${last}</div>
+                                </div>
                             </div>
                         `;
                     }).join('');
