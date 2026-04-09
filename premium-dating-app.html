@@ -376,13 +376,27 @@
             transform: translateX(-50%);
             width: 100%;
             max-width: 450px;
-            background: rgba(5, 12, 22, 0.92);
-            backdrop-filter: blur(12px);
-            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            background: linear-gradient(140deg, rgba(245, 222, 179, 0.16), rgba(15, 23, 42, 0.82));
+            backdrop-filter: blur(18px);
+            border-top: 1px solid rgba(245, 222, 179, 0.26);
+            box-shadow: 0 -14px 38px rgba(8, 18, 28, 0.52);
             padding: 12px 20px;
             display: flex;
             justify-content: space-around;
             z-index: 100;
+            overflow: hidden;
+        }
+
+        .bottom-nav::before {
+            content: '';
+            position: absolute;
+            top: -18px;
+            left: 10%;
+            width: 180px;
+            height: 44px;
+            border-radius: 999px;
+            background: radial-gradient(circle, rgba(255, 245, 230, 0.38), rgba(255, 245, 230, 0));
+            pointer-events: none;
         }
         
         .nav-btn {
@@ -395,15 +409,17 @@
             padding: 8px;
             border-radius: 12px;
             transition: all 0.3s;
-            color: rgba(255, 255, 255, 0.5);
+            color: rgba(255, 245, 230, 0.62);
         }
         
         .nav-btn:hover {
-            background: rgba(255, 255, 255, 0.05);
+            background: rgba(245, 222, 179, 0.14);
         }
         
         .nav-btn.active {
             color: #facc15;
+            background: rgba(250, 204, 21, 0.12);
+            box-shadow: inset 0 0 0 1px rgba(250, 204, 21, 0.28);
         }
 
         body.keyboard-open .bottom-nav {
@@ -423,32 +439,39 @@
         }
         
         /* Экран мэтчей */
+        #matches-screen,
+        #messages-screen {
+            padding-top: 22px;
+        }
+
         .matches-grid {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
-            gap: 12px;
+            gap: 14px;
             padding-bottom: 80px;
+            margin-top: 8px;
         }
         
         .match-card {
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            border-radius: 16px;
+            background: linear-gradient(145deg, rgba(245, 222, 179, 0.2), rgba(30, 41, 59, 0.58));
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(245, 222, 179, 0.32);
+            border-radius: 20px;
             padding: 12px;
             cursor: pointer;
             transition: all 0.3s;
+            box-shadow: 0 12px 26px rgba(15, 23, 42, 0.32);
         }
         
         .match-card:hover {
-            background: rgba(255, 255, 255, 0.15);
-            transform: translateY(-2px);
+            background: linear-gradient(145deg, rgba(245, 222, 179, 0.28), rgba(30, 41, 59, 0.64));
+            transform: translateY(-3px);
         }
         
         .match-photo {
-            background: linear-gradient(135deg, rgba(99, 102, 241, 0.3), rgba(168, 85, 247, 0.3));
+            background: linear-gradient(135deg, rgba(245, 222, 179, 0.36), rgba(51, 65, 85, 0.35));
             height: 160px;
-            border-radius: 12px;
+            border-radius: 14px;
             margin-bottom: 8px;
             display: flex;
             align-items: center;
@@ -462,14 +485,14 @@
         }
         
         .match-name {
-            color: white;
+            color: #fff4e1;
             font-weight: 600;
             font-size: 15px;
             margin-bottom: 4px;
         }
         
         .match-message {
-            color: rgba(255, 255, 255, 0.6);
+            color: rgba(255, 244, 225, 0.72);
             font-size: 12px;
         }
 
@@ -648,17 +671,37 @@
             width: 100px;
             height: 100px;
             border-radius: 50%;
-            background: linear-gradient(135deg, rgba(99, 102, 241, 0.4), rgba(168, 85, 247, 0.4));
+            background: linear-gradient(135deg, rgba(245, 222, 179, 0.64), rgba(34, 211, 238, 0.28));
             margin: 0 auto 16px;
             display: flex;
             align-items: center;
             justify-content: center;
+            cursor: pointer;
+            border: 2px solid rgba(245, 222, 179, 0.55);
+            box-shadow: 0 10px 22px rgba(15, 23, 42, 0.35);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .profile-photo:hover {
+            transform: translateY(-2px) scale(1.02);
+            box-shadow: 0 14px 26px rgba(15, 23, 42, 0.42);
         }
         
         .profile-photo svg {
             width: 50px;
             height: 50px;
             color: rgba(255, 255, 255, 0.5);
+        }
+
+        .profile-photo-hint {
+            font-size: 12px;
+            color: rgba(245, 231, 207, 0.88);
+            margin-top: -8px;
+            margin-bottom: 10px;
+        }
+
+        .profile-photo-input {
+            display: none;
         }
         
         .profile-name {
@@ -674,9 +717,9 @@
         }
         
         .profile-section {
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.2);
+            background: linear-gradient(145deg, rgba(245, 222, 179, 0.12), rgba(15, 23, 42, 0.46));
+            backdrop-filter: blur(14px);
+            border: 1px solid rgba(245, 222, 179, 0.26);
             border-radius: 16px;
             padding: 16px;
             margin-bottom: 12px;
@@ -1248,11 +1291,13 @@
         <!-- Экран профиля -->
         <div id="profile-screen" class="screen">
             <div class="profile-header">
-                <div class="profile-photo">
+                <div class="profile-photo" id="profile-photo-click" title="Нажмите, чтобы добавить фото">
                     <svg fill="currentColor" viewBox="0 0 20 20">
                         <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"/>
                     </svg>
                 </div>
+                <div class="profile-photo-hint">Нажмите на фото, чтобы добавить еще</div>
+                <input class="profile-photo-input" id="profile-photo-input" type="file" accept="image/*" multiple>
                 <div class="profile-name">Профиль</div>
                 <div class="profile-bio">Данные загружаются...</div>
             </div>
@@ -2418,6 +2463,62 @@
                 applyPhotoToElement(profilePhoto, profileData.primary_photo_url || (profileData.photos_urls || [])[0]);
             }
 
+            function fileToDataUrl(file) {
+                return new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onload = () => resolve(String(reader.result || ''));
+                    reader.onerror = () => reject(new Error('file_read_failed'));
+                    reader.readAsDataURL(file);
+                });
+            }
+
+            async function persistProfilePhotos() {
+                localStorage.setItem(storageKeyProfile, JSON.stringify(profileData));
+                if (!initData) return;
+                await apiRequest('/api/profile', {
+                    method: 'PUT',
+                    body: JSON.stringify({
+                        photos_urls: profileData.photos_urls || [],
+                        primary_photo_url: profileData.primary_photo_url || '',
+                    }),
+                });
+            }
+
+            async function handleProfilePhotoInputChange(event) {
+                const input = event && event.target;
+                const files = Array.from((input && input.files) || []);
+                if (!files.length) return;
+
+                try {
+                    const mapped = [];
+                    for (const file of files) {
+                        if (!file.type.startsWith('image/')) continue;
+                        const dataUrl = await fileToDataUrl(file);
+                        if (dataUrl) mapped.push(dataUrl);
+                    }
+
+                    if (!mapped.length) {
+                        alert('Выберите изображение');
+                        return;
+                    }
+
+                    const existing = Array.isArray(profileData.photos_urls) ? profileData.photos_urls.filter(Boolean) : [];
+                    const merged = [...existing, ...mapped].slice(0, 6);
+                    profileData.photos_urls = merged;
+                    if (!profileData.primary_photo_url) {
+                        profileData.primary_photo_url = merged[0] || '';
+                    }
+
+                    await persistProfilePhotos();
+                    renderProfile();
+                    alert('Фото добавлены');
+                } catch (e) {
+                    alert('Не удалось добавить фото');
+                } finally {
+                    if (input) input.value = '';
+                }
+            }
+
             window.openEditProfile = function() {
                 alert('Редактирование анкеты перенесено в бота. Используйте /profile в чате с ботом, чтобы обновить данные и добавить фото.');
             };
@@ -2548,6 +2649,15 @@
                 openProfileBtn.addEventListener('click', () => {
                     openEditProfile();
                 });
+            }
+
+            const profilePhotoClick = document.getElementById('profile-photo-click');
+            const profilePhotoInput = document.getElementById('profile-photo-input');
+            if (profilePhotoClick && profilePhotoInput) {
+                profilePhotoClick.addEventListener('click', () => {
+                    profilePhotoInput.click();
+                });
+                profilePhotoInput.addEventListener('change', handleProfilePhotoInputChange);
             }
 
             const saveProfileBtn = document.getElementById('save-profile-btn');
