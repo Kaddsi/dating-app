@@ -14,7 +14,7 @@
         
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: linear-gradient(145deg, #0b1218 0%, #163142 48%, #0d131d 100%);
+            background: radial-gradient(120% 120% at 50% 10%, #13243a 0%, #0b1a2e 42%, #081321 100%);
             min-height: 100vh;
             overflow-x: hidden;
             position: relative;
@@ -35,7 +35,7 @@
             left: 40px;
             width: 200px;
             height: 200px;
-            background: #22d3ee;
+            background: #2dd4bf;
         }
         
         .bg-blob-2 {
@@ -43,7 +43,7 @@
             right: 40px;
             width: 250px;
             height: 250px;
-            background: #10b981;
+            background: #fb7185;
             animation-delay: 1s;
         }
         
@@ -72,7 +72,7 @@
         body.header-hidden .header {
             display: none;
         }
-
+        
         .logo {
             background: rgba(255, 255, 255, 0.1);
             backdrop-filter: blur(12px);
@@ -81,7 +81,7 @@
             padding: 12px 20px;
             font-size: 18px;
             font-weight: 600;
-            background: linear-gradient(135deg, #7dd3fc, #5eead4);
+            background: linear-gradient(135deg, #67e8f9, #fb7185);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
@@ -283,9 +283,9 @@
         }
         
         .interest-tag {
-            background: rgba(34, 211, 238, 0.2);
-            color: #cffafe;
-            border: 1px solid rgba(34, 211, 238, 0.35);
+            background: rgba(45, 212, 191, 0.18);
+            color: #d5fffa;
+            border: 1px solid rgba(45, 212, 191, 0.35);
             padding: 4px 10px;
             border-radius: 12px;
             font-size: 12px;
@@ -321,14 +321,14 @@
         .action-btn.undo {
             width: 52px;
             height: 52px;
-            background: linear-gradient(135deg, rgba(250, 204, 21, 0.24), rgba(234, 179, 8, 0.24));
-            border-color: rgba(250, 204, 21, 0.55);
+            background: linear-gradient(135deg, rgba(45, 212, 191, 0.3), rgba(6, 182, 212, 0.24));
+            border-color: rgba(45, 212, 191, 0.55);
         }
 
         .action-btn.undo svg {
             width: 22px;
             height: 22px;
-            color: #facc15;
+            color: #99f6e4;
         }
         
         .action-btn.dislike {
@@ -346,8 +346,8 @@
         .action-btn.superlike {
             width: 52px;
             height: 52px;
-            background: linear-gradient(135deg, rgba(34, 211, 238, 0.28), rgba(16, 185, 129, 0.28));
-            border-color: rgba(94, 234, 212, 0.45);
+            background: linear-gradient(135deg, rgba(56, 189, 248, 0.3), rgba(45, 212, 191, 0.28));
+            border-color: rgba(103, 232, 249, 0.45);
         }
         
         .action-btn.superlike svg {
@@ -359,13 +359,13 @@
         .action-btn.like {
             width: 60px;
             height: 60px;
-            border-color: rgba(34, 197, 94, 0.4);
+            border-color: rgba(251, 113, 133, 0.42);
         }
         
         .action-btn.like svg {
             width: 28px;
             height: 28px;
-            color: #4ade80;
+            color: #fb7185;
         }
         
         /* Навигация */
@@ -376,10 +376,10 @@
             transform: translateX(-50%);
             width: 100%;
             max-width: 450px;
-            background: linear-gradient(140deg, rgba(245, 222, 179, 0.16), rgba(15, 23, 42, 0.82));
+            background: linear-gradient(145deg, rgba(17, 34, 56, 0.94), rgba(9, 22, 38, 0.92));
             backdrop-filter: blur(18px);
-            border-top: 1px solid rgba(245, 222, 179, 0.26);
-            box-shadow: 0 -14px 38px rgba(8, 18, 28, 0.52);
+            border-top: 1px solid rgba(125, 211, 252, 0.18);
+            box-shadow: 0 -14px 38px rgba(2, 10, 20, 0.55);
             padding: 12px 20px;
             display: flex;
             justify-content: space-around;
@@ -388,15 +388,7 @@
         }
 
         .bottom-nav::before {
-            content: '';
-            position: absolute;
-            top: -18px;
-            left: 10%;
-            width: 180px;
-            height: 44px;
-            border-radius: 999px;
-            background: radial-gradient(circle, rgba(255, 245, 230, 0.38), rgba(255, 245, 230, 0));
-            pointer-events: none;
+            content: none;
         }
         
         .nav-btn {
@@ -409,17 +401,17 @@
             padding: 8px;
             border-radius: 12px;
             transition: all 0.3s;
-            color: rgba(255, 245, 230, 0.62);
+            color: rgba(209, 224, 243, 0.7);
         }
         
         .nav-btn:hover {
-            background: rgba(245, 222, 179, 0.14);
+            background: rgba(45, 212, 191, 0.12);
         }
         
         .nav-btn.active {
-            color: #facc15;
-            background: rgba(250, 204, 21, 0.12);
-            box-shadow: inset 0 0 0 1px rgba(250, 204, 21, 0.28);
+            color: #67e8f9;
+            background: rgba(45, 212, 191, 0.12);
+            box-shadow: inset 0 0 0 1px rgba(45, 212, 191, 0.32);
         }
 
         body.keyboard-open .bottom-nav {
@@ -453,9 +445,9 @@
         }
         
         .match-card {
-            background: linear-gradient(145deg, rgba(245, 222, 179, 0.2), rgba(30, 41, 59, 0.58));
+            background: linear-gradient(145deg, rgba(45, 212, 191, 0.16), rgba(30, 41, 59, 0.62));
             backdrop-filter: blur(16px);
-            border: 1px solid rgba(245, 222, 179, 0.32);
+            border: 1px solid rgba(125, 211, 252, 0.24);
             border-radius: 20px;
             padding: 12px;
             cursor: pointer;
@@ -464,12 +456,12 @@
         }
         
         .match-card:hover {
-            background: linear-gradient(145deg, rgba(245, 222, 179, 0.28), rgba(30, 41, 59, 0.64));
+            background: linear-gradient(145deg, rgba(45, 212, 191, 0.22), rgba(30, 41, 59, 0.72));
             transform: translateY(-3px);
         }
         
         .match-photo {
-            background: linear-gradient(135deg, rgba(245, 222, 179, 0.36), rgba(51, 65, 85, 0.35));
+            background: linear-gradient(135deg, rgba(56, 189, 248, 0.26), rgba(51, 65, 85, 0.4));
             height: 160px;
             border-radius: 14px;
             margin-bottom: 8px;
@@ -485,14 +477,14 @@
         }
         
         .match-name {
-            color: #fff4e1;
+            color: #eff7ff;
             font-weight: 600;
             font-size: 15px;
             margin-bottom: 4px;
         }
         
         .match-message {
-            color: rgba(255, 244, 225, 0.72);
+            color: rgba(214, 230, 247, 0.78);
             font-size: 12px;
         }
 
@@ -671,13 +663,13 @@
             width: 100px;
             height: 100px;
             border-radius: 50%;
-            background: linear-gradient(135deg, rgba(245, 222, 179, 0.64), rgba(34, 211, 238, 0.28));
+            background: linear-gradient(135deg, rgba(45, 212, 191, 0.58), rgba(56, 189, 248, 0.32));
             margin: 0 auto 16px;
             display: flex;
             align-items: center;
             justify-content: center;
             cursor: pointer;
-            border: 2px solid rgba(245, 222, 179, 0.55);
+            border: 2px solid rgba(125, 211, 252, 0.48);
             box-shadow: 0 10px 22px rgba(15, 23, 42, 0.35);
             transition: transform 0.2s ease, box-shadow 0.2s ease;
         }
@@ -695,7 +687,7 @@
 
         .profile-photo-hint {
             font-size: 12px;
-            color: rgba(245, 231, 207, 0.88);
+            color: rgba(209, 224, 243, 0.88);
             margin-top: -8px;
             margin-bottom: 10px;
         }
@@ -717,9 +709,9 @@
         }
         
         .profile-section {
-            background: linear-gradient(145deg, rgba(245, 222, 179, 0.12), rgba(15, 23, 42, 0.46));
+            background: linear-gradient(145deg, rgba(45, 212, 191, 0.1), rgba(15, 23, 42, 0.5));
             backdrop-filter: blur(14px);
-            border: 1px solid rgba(245, 222, 179, 0.26);
+            border: 1px solid rgba(125, 211, 252, 0.22);
             border-radius: 16px;
             padding: 16px;
             margin-bottom: 12px;
@@ -803,8 +795,8 @@
         .match-modal button {
             width: 100%;
             padding: 14px;
-            background: linear-gradient(135deg, #facc15, #eab308);
-            color: #2a1b0b;
+            background: linear-gradient(135deg, #2dd4bf, #06b6d4);
+            color: #052230;
             border: none;
             border-radius: 12px;
             font-weight: 600;
@@ -814,7 +806,7 @@
         }
         
         .match-modal button:hover {
-            background: linear-gradient(135deg, #fde047, #f59e0b);
+            background: linear-gradient(135deg, #5eead4, #22d3ee);
         }
         
         /* Пустое состояние */
@@ -902,8 +894,8 @@
         }
 
         .primary-btn {
-            background: linear-gradient(135deg, #facc15, #f59e0b);
-            color: #2a1b0b;
+            background: linear-gradient(135deg, #2dd4bf, #06b6d4);
+            color: #072330;
             flex: 1;
         }
 
@@ -1104,9 +1096,9 @@
         .gaming-compose input {
             flex: 1;
             border-radius: 14px;
-            border: 1px solid rgba(245, 222, 179, 0.34);
-            background: rgba(245, 222, 179, 0.1);
-            color: #fff9f0;
+            border: 1px solid rgba(45, 212, 191, 0.34);
+            background: rgba(45, 212, 191, 0.1);
+            color: #e6faff;
             padding: 12px 14px;
             font-size: 16px;
             line-height: 1.35;
@@ -1116,8 +1108,8 @@
             border: none;
             border-radius: 14px;
             padding: 0 16px;
-            background: linear-gradient(135deg, #f5deb3, #d6b784);
-            color: #2a1b0b;
+            background: linear-gradient(135deg, #2dd4bf, #0ea5e9);
+            color: #072330;
             font-weight: 800;
         }
 
