@@ -12,7 +12,7 @@ import hmac
 from datetime import datetime, timezone
 from collections import defaultdict
 from pathlib import Path
-from urllib.parse import parse_qs, quote
+from urllib.parse import parse_qs, quote, urlencode
 from urllib.request import urlopen
 
 import asyncpg
@@ -86,6 +86,15 @@ GAMING_ROOMS: dict[str, dict[str, str]] = {
     },
 }
 
+VOICE_PREFIX = "__voice__:"
+GIFT_PREFIX = "__gift__:"
+MAX_VOICE_PAYLOAD_LEN = 900_000
+STARS_GIFT_CATALOG: dict[str, dict[str, Any]] = {
+    "rose": {"title": "Rose", "stars": 25, "description": "A lovely rose for your match."},
+    "heart": {"title": "Heart", "stars": 50, "description": "A warm heart gift."},
+    "crown": {"title": "Crown", "stars": 100, "description": "A premium crown gift."},
+}
+
 PROFANITY_MARKERS = {
     "бля", "бляд", "хуй", "хуе", "пизд", "еба", "ебл", "сука", "мраз", "нах", "пошел нах",
     "fuck", "fck", "shit", "bitch", "cunt", "motherf",
@@ -116,6 +125,27 @@ def _contains_profanity(text: str) -> bool:
     normalized = _normalize_text(text)
     squashed = normalized.replace(" ", "")
     return any(marker in normalized or marker.replace(" ", "") in squashed for marker in PROFANITY_MARKERS)
+
+
+def _message_preview_for_notification(content: str) -> str:
+    trimmed = (content or "").strip()
+    if trimmed.startswith(VOICE_PREFIX):
+        return "🎤 Voice message"
+    if trimmed.startswith(GIFT_PREFIX):
+        return "🎁 Gift sent"
+    return trimmed
+
+
+def _validate_message_payload(content: str) -> str:
+    trimmed = (content or "").strip()
+    if not trimmed:
+        raise HTTPException(status_code=400, detail="Message content is empty")
+    if trimmed.startswith(VOICE_PREFIX) and len(trimmed) > MAX_VOICE_PAYLOAD_LEN:
+        raise HTTPException(status_code=413, detail="Voice message is too large")
+    if not trimmed.startswith(VOICE_PREFIX) and not trimmed.startswith(GIFT_PREFIX):
+        if _contains_profanity(trimmed):
+            raise HTTPException(status_code=400, detail="Please keep the chat respectful")
+    return trimmed
 
 
 def _get_room_info(room_slug: str) -> dict[str, str]:
@@ -151,6 +181,18 @@ class DirectMessageCreateRequest(BaseModel):
     target_user_id: int
     content: str
     message_type: str = "text"
+
+
+class GiftInvoiceRequest(BaseModel):
+    match_id: int
+    gift_slug: str = "rose"
+
+
+class GiftInvoiceResponse(BaseModel):
+    invoice_link: str
+    gift_slug: str
+    stars: int
+    title: str
 
 
 class GamingRoomMessageCreateRequest(BaseModel):
@@ -295,6 +337,27 @@ def _download_telegram_photo(file_id: str) -> tuple[bytes, str]:
         media_type = guessed or media_type
 
     return content, media_type
+
+
+def _create_stars_invoice_link(title: str, description: str, payload: str, amount_stars: int) -> str:
+    if not BOT_TOKEN:
+        raise RuntimeError("BOT_TOKEN is not configured")
+
+    api_url = f"https://api.telegram.org/bot{BOT_TOKEN}/createInvoiceLink"
+    body = urlencode(
+        {
+            "title": title,
+            "description": description,
+            "payload": payload,
+            "currency": "XTR",
+            "prices": json.dumps([{"label": title, "amount": int(amount_stars)}]),
+        }
+    ).encode("utf-8")
+    with urlopen(api_url, data=body, timeout=20) as response:
+        payload_json = json.loads(response.read().decode("utf-8"))
+    if not payload_json.get("ok"):
+        raise RuntimeError(f"Telegram invoice error: {payload_json.get('description', 'unknown')}")
+    return str(payload_json.get("result") or "")
 
 
 def _idempotency_get(user_id: int, idem_key: str) -> Optional[dict[str, Any]]:
@@ -869,10 +932,7 @@ async def create_message(
     pool: asyncpg.Pool = Depends(get_db_pool),
 ):
     """Create message in a match and notify receiver in Telegram."""
-    if not payload.content.strip():
-        raise HTTPException(status_code=400, detail="Message content is empty")
-    if _contains_profanity(payload.content):
-        raise HTTPException(status_code=400, detail="Please keep the chat respectful")
+    normalized_content = _validate_message_payload(payload.content)
 
     _check_rate_limit(current_user['id'], "messages", limit=120, window_sec=60)
 
@@ -899,7 +959,7 @@ async def create_message(
             "match_id": int(payload.match_id),
             "from_user_id": user_id,
             "to_user_id": int(to_user_id),
-            "content": payload.content.strip(),
+            "content": normalized_content,
             "message_type": payload.message_type,
             "is_read": False,
             "created_at": created_at,
@@ -938,7 +998,7 @@ async def create_message(
             payload.match_id,
             current_user['id'],
             payload.message_type,
-            payload.content.strip(),
+            normalized_content,
         )
 
         await conn.execute(
@@ -959,7 +1019,7 @@ async def create_message(
             await send_message_notification(
                 receiver['telegram_id'],
                 (sender['first_name'] if sender else "Someone"),
-                payload.content.strip(),
+                _message_preview_for_notification(normalized_content),
             )
 
     payload_resp = {"id": int(inserted['id']), "created_at": str(inserted['created_at'])}
@@ -976,10 +1036,7 @@ async def create_direct_message(
     pool: asyncpg.Pool = Depends(get_db_pool),
 ):
     """Create message by target user id (helper for mini-app match popup)."""
-    if not payload.content.strip():
-        raise HTTPException(status_code=400, detail="Message content is empty")
-    if _contains_profanity(payload.content):
-        raise HTTPException(status_code=400, detail="Please keep the chat respectful")
+    normalized_content = _validate_message_payload(payload.content)
 
     if payload.target_user_id == current_user['id']:
         raise HTTPException(status_code=400, detail="Cannot message yourself")
@@ -1008,7 +1065,7 @@ async def create_direct_message(
             "match_id": int(match_row['id']),
             "from_user_id": user_id,
             "to_user_id": target_user_id,
-            "content": payload.content.strip(),
+            "content": normalized_content,
             "message_type": payload.message_type,
             "is_read": False,
             "created_at": created_at,
@@ -1046,7 +1103,7 @@ async def create_direct_message(
             match_row['id'],
             current_user['id'],
             payload.message_type,
-            payload.content.strip(),
+            normalized_content,
         )
 
         await conn.execute(
@@ -1067,13 +1124,75 @@ async def create_direct_message(
             await send_message_notification(
                 receiver['telegram_id'],
                 (sender['first_name'] if sender else "Someone"),
-                payload.content.strip(),
+                _message_preview_for_notification(normalized_content),
             )
 
     payload_resp = {"id": int(inserted['id']), "created_at": str(inserted['created_at'])}
     if idem_key:
         _idempotency_set(current_user['id'], f"msgdirect:{idem_key}", payload_resp)
     return MessageCreateResponse(**payload_resp)
+
+
+@app.post("/api/gifts/invoice", response_model=GiftInvoiceResponse)
+async def create_gift_invoice(
+    payload: GiftInvoiceRequest,
+    current_user: dict = Depends(get_current_user),
+    pool: asyncpg.Pool = Depends(get_db_pool),
+):
+    """Create Telegram Stars invoice link for an in-chat gift."""
+    gift_slug = (payload.gift_slug or "rose").strip().lower()
+    gift = STARS_GIFT_CATALOG.get(gift_slug)
+    if not gift:
+        raise HTTPException(status_code=400, detail="Unknown gift")
+
+    if not BOT_TOKEN:
+        raise HTTPException(status_code=503, detail="Gifts are temporarily unavailable")
+
+    if RUN_WITHOUT_DB or pool is None:
+        raise HTTPException(status_code=503, detail="Gifts require database mode")
+
+    async with pool.acquire() as conn:
+        match_row = await conn.fetchrow(
+            """
+            SELECT id, user1_id, user2_id, is_active
+            FROM matches
+            WHERE id = $1
+            """,
+            payload.match_id,
+        )
+        if not match_row or not match_row["is_active"]:
+            raise HTTPException(status_code=404, detail="Match not found")
+        if current_user["id"] not in (match_row["user1_id"], match_row["user2_id"]):
+            raise HTTPException(status_code=403, detail="Not your match")
+
+    invoice_payload = json.dumps(
+        {
+            "kind": "gift",
+            "match_id": int(payload.match_id),
+            "sender_id": int(current_user["id"]),
+            "gift_slug": gift_slug,
+            "ts": int(time.time()),
+        },
+        ensure_ascii=False,
+    )
+
+    try:
+        invoice_link = await asyncio.to_thread(
+            _create_stars_invoice_link,
+            str(gift["title"]),
+            str(gift["description"]),
+            invoice_payload,
+            int(gift["stars"]),
+        )
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail="Failed to create Stars invoice") from exc
+
+    return GiftInvoiceResponse(
+        invoice_link=invoice_link,
+        gift_slug=gift_slug,
+        stars=int(gift["stars"]),
+        title=str(gift["title"]),
+    )
 
 
 @app.get("/api/gaming/rooms", response_model=GamingRoomsResponse)
