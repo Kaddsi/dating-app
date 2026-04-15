@@ -623,25 +623,161 @@
             padding-right: 4px;
         }
 
-        .bubble {
+        .bubble-row {
+            display: flex;
+            flex-direction: column;
             max-width: 82%;
+        }
+        .bubble-row.out { align-self: flex-end; align-items: flex-end; }
+        .bubble-row.in  { align-self: flex-start; align-items: flex-start; }
+
+        .bubble {
             padding: 9px 12px;
             border-radius: 12px;
             font-size: 14px;
             line-height: 1.35;
+            position: relative;
+            cursor: pointer;
+            -webkit-user-select: none;
+            user-select: none;
         }
 
         .bubble.in {
-            align-self: flex-start;
             background: rgba(255, 255, 255, 0.08);
             color: #ffe7f2;
         }
 
         .bubble.out {
-            align-self: flex-end;
             background: rgba(205, 132, 167, 0.32);
             color: #ffeef7;
         }
+
+        /* Мета строка: время + галочки */
+        .bubble-meta {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            margin-top: 2px;
+            padding: 0 2px;
+        }
+        .bubble-time {
+            font-size: 10px;
+            color: rgba(224, 181, 200, 0.55);
+            line-height: 1;
+        }
+        .bubble-read {
+            display: flex;
+            gap: 0px;
+        }
+        .bubble-read svg {
+            width: 13px;
+            height: 13px;
+        }
+        .bubble-read.sent  svg { color: rgba(224, 181, 200, 0.5); }
+        .bubble-read.read  svg { color: #cd84a7; }
+
+        /* Реакции */
+        .bubble-reaction {
+            font-size: 14px;
+            margin-top: -4px;
+            margin-bottom: 2px;
+            margin-left: 4px;
+            display: inline-block;
+            transition: transform 0.15s;
+            cursor: default;
+        }
+        .bubble-reaction:empty { display: none; }
+        .react-picker {
+            position: absolute;
+            bottom: calc(100% + 6px);
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(30, 22, 34, 0.96);
+            border: 1px solid rgba(205, 132, 167, 0.35);
+            border-radius: 24px;
+            padding: 6px 10px;
+            display: flex;
+            gap: 8px;
+            z-index: 999;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+            white-space: nowrap;
+        }
+        .react-picker span {
+            font-size: 20px;
+            cursor: pointer;
+            transition: transform 0.12s;
+            line-height: 1;
+        }
+        .react-picker span:hover { transform: scale(1.3); }
+
+        /* Typing indicator */
+        .typing-indicator {
+            display: none;
+            align-items: center;
+            gap: 3px;
+            padding: 7px 12px;
+            background: rgba(255, 255, 255, 0.06);
+            border-radius: 14px;
+            align-self: flex-start;
+            width: fit-content;
+        }
+        .typing-indicator.show { display: flex; }
+        .typing-indicator span {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: rgba(205, 132, 167, 0.7);
+        }
+        @keyframes typing-dot {
+            0%, 60%, 100% { transform: translateY(0); opacity: 0.45; }
+            30% { transform: translateY(-5px); opacity: 1; }
+        }
+        .typing-indicator span:nth-child(1) { animation: typing-dot 1.1s ease-in-out infinite; }
+        .typing-indicator span:nth-child(2) { animation: typing-dot 1.1s ease-in-out infinite 0.18s; }
+        .typing-indicator span:nth-child(3) { animation: typing-dot 1.1s ease-in-out infinite 0.36s; }
+
+        /* Online dot */
+        .online-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #22d671;
+            border: 2px solid rgba(18, 13, 22, 0.9);
+            flex-shrink: 0;
+        }
+        .conv-online-wrap {
+            position: relative;
+        }
+        .conv-online-wrap .online-dot {
+            position: absolute;
+            bottom: 1px;
+            right: 1px;
+        }
+        .match-online-dot {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #22d671;
+            border: 2px solid rgba(10, 6, 14, 0.85);
+            box-shadow: 0 0 6px rgba(34, 214, 113, 0.6);
+        }
+        @keyframes online-pulse {
+            0%, 100% { box-shadow: 0 0 4px rgba(34, 214, 113, 0.5); }
+            50% { box-shadow: 0 0 10px rgba(34, 214, 113, 0.9); }
+        }
+        .online-dot, .match-online-dot { animation: online-pulse 2s ease-in-out infinite; }
+
+        /* Thread header online status */
+        .thread-header-status {
+            font-size: 11px;
+            color: #22d671;
+            font-weight: 500;
+        }
+        .thread-header-info { flex: 1; min-width: 0; }
+        .thread-header-name { color: #ffe7f2; font-weight: 600; font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
         .thread-compose {
             display: flex;
@@ -1445,9 +1581,16 @@
             <div id="thread-wrap" class="thread-wrap">
                 <div class="thread-header">
                     <button id="thread-back-btn" class="thread-back" type="button">← Назад</button>
-                    <span id="thread-user-name">Диалог</span>
+                    <div class="thread-header-info">
+                        <div class="thread-header-name" id="thread-user-name">Диалог</div>
+                        <div id="thread-header-status" class="thread-header-status" style="display:none">онлайн</div>
+                    </div>
                 </div>
-                <div id="thread-messages" class="thread-messages"></div>
+                <div id="thread-messages" class="thread-messages">
+                    <div class="typing-indicator" id="typing-indicator">
+                        <span></span><span></span><span></span>
+                    </div>
+                </div>
                 <div class="thread-compose">
                     <button id="thread-gift-btn" class="thread-action-btn gift-btn" type="button" title="Подарок за Stars">
                         <svg class="gift-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -2140,7 +2283,113 @@
             const VOICE_PREFIX = '__voice__:';
             const GIFT_PREFIX = '__gift__:';
 
-            const _vpcAudios = {};
+            // ---- Реакции ----
+            const _reactions = {}; // msgIndex -> emoji
+            window._closeReactPicker = function(el) {
+                const p = el && el.closest('.bubble-row') && el.closest('.bubble-row').querySelector('.react-picker');
+                if (p) p.remove();
+            };
+            window.setReaction = function(bubbleId, emoji) {
+                _reactions[bubbleId] = emoji;
+                const row = document.querySelector(`[data-bubble-id="${bubbleId}"]`);
+                if (row) {
+                    const reEl = row.querySelector('.bubble-reaction');
+                    if (reEl) { reEl.textContent = emoji; reEl.style.transform = 'scale(1.4)'; setTimeout(() => reEl.style.transform = '', 200); }
+                    const picker = row.querySelector('.react-picker');
+                    if (picker) picker.remove();
+                }
+            };
+
+            // ---- Typing indicator ----
+            let _typingTimer = null;
+            const REACT_EMOJIS = ['❤️','😍','😂','🔥','👏','😮'];
+
+            function fmtTime(ts) {
+                if (!ts) return '';
+                const d = new Date(ts * 1000);
+                if (isNaN(d)) return '';
+                return d.toLocaleTimeString('ru', { hour: '2-digit', minute: '2-digit' });
+            }
+
+            function showTyping() {
+                const ti = document.getElementById('typing-indicator');
+                if (!ti) return;
+                ti.classList.add('show');
+                const thread = document.getElementById('thread-messages');
+                if (thread) thread.scrollTop = thread.scrollHeight;
+                clearTimeout(_typingTimer);
+                _typingTimer = setTimeout(() => ti.classList.remove('show'), 3000);
+            }
+
+            function buildBubble(msg, currentId, idx) {
+                const escapeHtml = (v) => String(v || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                const klass = Number(msg.from_user_id) === currentId ? 'out' : 'in';
+                const ts = fmtTime(msg.created_at);
+                const reaction = _reactions[idx] || '';
+                const isOut = klass === 'out';
+
+                const readHtml = isOut ? `
+                    <span class="bubble-read ${msg.is_read ? 'read' : 'sent'}">
+                        <svg viewBox="0 0 16 10" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M1 5l3.5 3.5L11 1" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+                            ${msg.is_read ? '<path d="M5 5l3.5 3.5L15 1" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>' : ''}
+                        </svg>
+                    </span>` : '';
+
+                const raw = String(msg.content || '');
+                let bubbleInner = '';
+                if (raw.startsWith(VOICE_PREFIX)) {
+                    const src = raw.slice(VOICE_PREFIX.length).replace(/"/g, '&quot;');
+                    const vpId = 'vp-' + idx + '-' + Math.random().toString(36).slice(2, 5);
+                    const bars = Array.from({length: 22}, (_, i) => `<span style="height:${3 + Math.round(Math.abs(Math.sin(i * 0.78)) * 9)}px"></span>`).join('');
+                    bubbleInner = `<div class="vpc-wrap" id="${vpId}" data-src="${src}"><button class="vpc-play-btn" onclick="toggleVpc('${vpId}')"><svg class="vpc-icon-play" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg><svg class="vpc-icon-pause" viewBox="0 0 24 24" fill="currentColor" style="display:none"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg></button><div class="vpc-bars">${bars}</div><span class="vpc-time">0:00</span></div>`;
+                } else if (raw.startsWith(GIFT_PREFIX)) {
+                    const giftPayload = raw.slice(GIFT_PREFIX.length);
+                    const parts = giftPayload.split('|');
+                    bubbleInner = `<span class="gift-badge">🎁 ${escapeHtml(parts[1] || 'Gift')} • ⭐ ${escapeHtml(parts[2] || '?')}</span>`;
+                } else {
+                    bubbleInner = escapeHtml(raw);
+                }
+
+                return `<div class="bubble-row ${klass}" data-bubble-id="${idx}">
+                    <div class="bubble ${klass}" oncontextmenu="return false"
+                         ontouchstart="_bTouchStart(event,${idx})" ontouchend="_bTouchEnd(event)"
+                         onmousedown="_bMouseDown(event,${idx})" onmouseup="_bMouseUp(event)">${bubbleInner}</div>
+                    <div class="bubble-meta">
+                        <span class="bubble-time">${ts}</span>
+                        ${readHtml}
+                    </div>
+                    ${reaction ? `<span class="bubble-reaction">${reaction}</span>` : `<span class="bubble-reaction"></span>`}
+                </div>`;
+            }
+
+            // Long-press для реакций
+            let _longPressTimer = null;
+            window._bTouchStart = function(e, idx) {
+                _longPressTimer = setTimeout(() => _showReactPicker(e.currentTarget, idx), 500);
+            };
+            window._bTouchEnd = function(e) {
+                clearTimeout(_longPressTimer);
+            };
+            window._bMouseDown = function(e, idx) {
+                if (e.button !== 0) return;
+                _longPressTimer = setTimeout(() => _showReactPicker(e.currentTarget, idx), 600);
+            };
+            window._bMouseUp = function(e) {
+                clearTimeout(_longPressTimer);
+            };
+            function _showReactPicker(bubble, idx) {
+                const row = bubble.closest('.bubble-row');
+                if (!row) return;
+                if (row.querySelector('.react-picker')) return;
+                const picker = document.createElement('div');
+                picker.className = 'react-picker';
+                picker.innerHTML = REACT_EMOJIS.map(em => `<span onclick="setReaction(${idx},'${em}')">${em}</span>`).join('');
+                bubble.style.position = 'relative';
+                bubble.appendChild(picker);
+                const close = (ev) => { if (!picker.contains(ev.target)) { picker.remove(); document.removeEventListener('click', close); } };
+                setTimeout(() => document.addEventListener('click', close), 0);
+            }
             window.toggleVpc = function(id) {
                 const el = document.getElementById(id);
                 if (!el) return;
@@ -2305,13 +2554,15 @@
                         const photoStyle = m.primary_photo_url
                             ? `style="background-image:url('${String(m.primary_photo_url).replace(/'/g, '&#39;')}');background-size:cover;background-position:center;"`
                             : '';
+                        const online = Boolean(m.is_online);
                         return `
-                            <div class="match-card" data-match-id="${m.match_id}" data-user-id="${m.user_id}" data-user-name="${(m.first_name || 'User').replace(/"/g, '&quot;')}">
+                            <div class="match-card" data-match-id="${m.match_id}" data-user-id="${m.user_id}" data-user-name="${(m.first_name || 'User').replace(/"/g, '&quot;')}" data-online="${online}">
                                 <div class="match-photo" ${photoStyle}>
                                     <svg fill="currentColor" viewBox="0 0 20 20">
                                         <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"/>
                                     </svg>
                                 </div>
+                                ${online ? '<div class="match-online-dot"></div>' : ''}
                                 <div class="match-info">
                                     <div class="match-name">${m.first_name || 'User'}</div>
                                     <div class="match-message">${last}</div>
@@ -2324,7 +2575,8 @@
                         card.addEventListener('click', () => {
                             const matchId = Number(card.getAttribute('data-match-id'));
                             const userName = card.getAttribute('data-user-name') || 'User';
-                            openMessageThread(matchId, userName);
+                            const online = card.getAttribute('data-online') === 'true';
+                            openMessageThread(matchId, userName, online);
                             showScreen('messages');
                         });
                     });
@@ -2352,10 +2604,14 @@
                         const avatarStyle = m.primary_photo_url
                             ? `style="background-image:url('${String(m.primary_photo_url).replace(/'/g, '&#39;')}');background-size:cover;background-position:center;"`
                             : '';
+                        const online = Boolean(m.is_online);
                         return `
-                            <div class="conversation-card" data-match-id="${m.match_id}" data-user-name="${(m.first_name || 'User').replace(/"/g, '&quot;')}">
-                                <div class="conversation-avatar" ${avatarStyle}>
-                                    ${!m.primary_photo_url ? '<svg fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"/></svg>' : ''}
+                            <div class="conversation-card" data-match-id="${m.match_id}" data-user-name="${(m.first_name || 'User').replace(/"/g, '&quot;')}" data-online="${online}">
+                                <div class="conv-online-wrap">
+                                    <div class="conversation-avatar" ${avatarStyle}>
+                                        ${!m.primary_photo_url ? '<svg fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"/></svg>' : ''}
+                                    </div>
+                                    ${online ? '<div class="online-dot"></div>' : ''}
                                 </div>
                                 <div class="conversation-body">
                                     <div class="conversation-top">
@@ -2372,7 +2628,8 @@
                         card.addEventListener('click', () => {
                             const matchId = Number(card.getAttribute('data-match-id'));
                             const userName = card.getAttribute('data-user-name') || 'User';
-                            openMessageThread(matchId, userName);
+                            const online = card.getAttribute('data-online') === 'true';
+                            openMessageThread(matchId, userName, online);
                         });
                     });
                 } catch (e) {
@@ -2381,14 +2638,30 @@
                 }
             }
 
-            async function openMessageThread(matchId, userName) {
+            function _renderThread(items, currentId) {
+                const thread = document.getElementById('thread-messages');
+                if (!thread) return;
+                const ti = document.getElementById('typing-indicator');
+                if (!items.length) {
+                    thread.innerHTML = '<div class="muted-line">Пока нет сообщений</div>';
+                    if (ti) thread.appendChild(ti);
+                    return;
+                }
+                thread.innerHTML = items.map((msg, idx) => buildBubble(msg, currentId, idx)).join('');
+                if (ti) thread.appendChild(ti);
+                thread.scrollTop = thread.scrollHeight;
+            }
+
+            async function openMessageThread(matchId, userName, isOnline) {
                 activeThreadMatchId = Number(matchId);
                 activeThreadUserName = userName || 'User';
 
                 const list = document.getElementById('messages-list');
                 const wrap = document.getElementById('thread-wrap');
                 const title = document.getElementById('thread-user-name');
+                const statusEl = document.getElementById('thread-header-status');
                 if (title) title.textContent = activeThreadUserName;
+                if (statusEl) { statusEl.style.display = isOnline ? '' : 'none'; }
                 if (list) list.style.display = 'none';
                 if (wrap) wrap.classList.add('active');
 
@@ -2396,37 +2669,8 @@
                     const data = await apiRequest(`/api/matches/${activeThreadMatchId}/messages?limit=100`);
                     const currentUser = getCurrentUser();
                     const currentId = currentUser ? Number(currentUser.id) : 0;
-                    const thread = document.getElementById('thread-messages');
-                    if (!thread) return;
                     const items = Array.isArray(data && data.items) ? data.items : [];
-                    if (!items.length) {
-                        thread.innerHTML = '<div class="muted-line">Пока нет сообщений</div>';
-                    } else {
-                        const escapeHtml = (value) => String(value || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-                        thread.innerHTML = items.map((msg) => {
-                            const klass = Number(msg.from_user_id) === currentId ? 'out' : 'in';
-                            const raw = String(msg.content || '');
-
-                            if (raw.startsWith(VOICE_PREFIX)) {
-                                const src = raw.slice(VOICE_PREFIX.length).replace(/"/g, '&quot;');
-                                const vpId = 'vp-' + Math.random().toString(36).slice(2, 8);
-                                const bars = Array.from({length: 22}, (_, i) => `<span style="height:${3 + Math.round(Math.abs(Math.sin(i * 0.78)) * 9)}px"></span>`).join('');
-                                return `<div class="bubble ${klass}"><div class="vpc-wrap" id="${vpId}" data-src="${src}"><button class="vpc-play-btn" onclick="toggleVpc('${vpId}')"><svg class="vpc-icon-play" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg><svg class="vpc-icon-pause" viewBox="0 0 24 24" fill="currentColor" style="display:none"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg></button><div class="vpc-bars">${bars}</div><span class="vpc-time">0:00</span></div></div>`;
-                            }
-
-                            if (raw.startsWith(GIFT_PREFIX)) {
-                                const giftPayload = raw.slice(GIFT_PREFIX.length);
-                                const parts = giftPayload.split('|');
-                                const giftTitle = escapeHtml(parts[1] || 'Gift');
-                                const giftStars = escapeHtml(parts[2] || '?');
-                                return `<div class="bubble ${klass}"><span class="gift-badge">🎁 ${giftTitle} • ⭐ ${giftStars}</span></div>`;
-                            }
-
-                            const content = escapeHtml(raw);
-                            return `<div class="bubble ${klass}">${content}</div>`;
-                        }).join('');
-                        thread.scrollTop = thread.scrollHeight;
-                    }
+                    _renderThread(items, currentId);
                     await apiRequest(`/api/matches/${activeThreadMatchId}/read`, { method: 'POST' });
                     await refreshNotificationSummary();
                     await loadMessagesInboxFromApi();
@@ -2463,8 +2707,10 @@
                 const content = input ? String(input.value || '').trim() : '';
                 if (!content) return;
                 try {
-                    await sendThreadPayload(content);
                     if (input) input.value = '';
+                    // Показываем typing у собеседника после небольшой задержки
+                    setTimeout(() => showTyping(), 600);
+                    await sendThreadPayload(content);
                     await openMessageThread(activeThreadMatchId, activeThreadUserName);
                 } catch (e) {
                     alert('Не удалось отправить сообщение');
