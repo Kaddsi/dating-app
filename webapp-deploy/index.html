@@ -442,47 +442,65 @@
         }
         
         .match-card {
-            background: rgba(36, 27, 39, 0.9);
-            backdrop-filter: blur(16px);
-            border: 1px solid rgba(205, 132, 167, 0.28);
+            position: relative;
+            overflow: hidden;
             border-radius: 20px;
-            padding: 12px;
+            aspect-ratio: 2 / 3;
             cursor: pointer;
-            transition: all 0.3s;
-            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.34);
+            border: 1px solid rgba(205, 132, 167, 0.22);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+            transition: transform 0.2s, box-shadow 0.2s;
+            background: #2c2130;
         }
         
         .match-card:hover {
-            background: rgba(45, 33, 48, 0.95);
-            transform: translateY(-3px);
+            transform: translateY(-4px) scale(1.02);
+            box-shadow: 0 16px 36px rgba(0, 0, 0, 0.55);
         }
         
         .match-photo {
-            background: #2c2130;
-            height: 160px;
-            border-radius: 14px;
-            margin-bottom: 8px;
+            position: absolute;
+            inset: 0;
+            background-size: cover;
+            background-position: center top;
+            background-color: #2c2130;
             display: flex;
             align-items: center;
             justify-content: center;
         }
         
         .match-photo svg {
-            width: 40px;
-            height: 40px;
-            color: rgba(255, 255, 255, 0.4);
+            width: 44px;
+            height: 44px;
+            color: rgba(255, 255, 255, 0.2);
+        }
+
+        .match-info {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 32px 10px 12px;
+            background: linear-gradient(to top, rgba(10, 6, 14, 0.9) 0%, rgba(10,6,14,0.35) 65%, transparent 100%);
         }
         
         .match-name {
-            color: #ffe7f2;
-            font-weight: 600;
-            font-size: 15px;
-            margin-bottom: 4px;
+            color: #fff;
+            font-weight: 700;
+            font-size: 14px;
+            margin-bottom: 2px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            text-shadow: 0 1px 4px rgba(0,0,0,0.6);
         }
         
         .match-message {
-            color: rgba(224, 181, 200, 0.8);
-            font-size: 12px;
+            color: rgba(255, 218, 240, 0.82);
+            font-size: 11px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
         .messages-list {
@@ -778,10 +796,49 @@
         }
         .mic-icon { transition: transform 0.2s; }
 
-        .voice-player {
-            width: 190px;
-            max-width: 100%;
-            height: 36px;
+        .vpc-wrap {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 2px 0;
+            min-width: 170px;
+        }
+        .vpc-play-btn {
+            width: 34px;
+            height: 34px;
+            flex-shrink: 0;
+            border-radius: 50%;
+            background: rgba(205, 132, 167, 0.3);
+            border: 1.5px solid rgba(205, 132, 167, 0.55);
+            color: #ffd6e8;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: background 0.15s, transform 0.1s;
+        }
+        .vpc-play-btn:hover { background: rgba(205, 132, 167, 0.48); }
+        .vpc-play-btn:active { transform: scale(0.9); }
+        .vpc-play-btn svg { width: 15px; height: 15px; pointer-events: none; }
+        .vpc-bars {
+            display: flex;
+            gap: 2px;
+            align-items: center;
+            flex: 1;
+        }
+        .vpc-bars span {
+            width: 3px;
+            border-radius: 2px;
+            background: rgba(205, 132, 167, 0.9);
+            opacity: 0.28;
+            transition: opacity 0.08s;
+        }
+        .vpc-time {
+            font-size: 11px;
+            color: rgba(224, 181, 200, 0.75);
+            min-width: 28px;
+            text-align: right;
+            flex-shrink: 0;
         }
 
         .gift-badge {
@@ -2082,6 +2139,51 @@
             let swipeHistory = [];
             const VOICE_PREFIX = '__voice__:';
             const GIFT_PREFIX = '__gift__:';
+
+            const _vpcAudios = {};
+            window.toggleVpc = function(id) {
+                const el = document.getElementById(id);
+                if (!el) return;
+                const src = el.getAttribute('data-src');
+                if (!_vpcAudios[id]) {
+                    const audio = new Audio(src);
+                    _vpcAudios[id] = audio;
+                    audio.ontimeupdate = () => {
+                        const t = audio.currentTime, d = audio.duration || 0;
+                        const mm = Math.floor(t / 60), ss = Math.floor(t % 60);
+                        const timeEl = el.querySelector('.vpc-time');
+                        if (timeEl) timeEl.textContent = mm + ':' + String(ss).padStart(2, '0');
+                        const pct = d ? t / d : 0;
+                        el.querySelectorAll('.vpc-bars span').forEach((b, i, arr) => {
+                            b.style.opacity = (i / arr.length) <= pct ? '1' : '0.28';
+                        });
+                    };
+                    audio.onended = () => {
+                        const pi = el.querySelector('.vpc-icon-play'), pa = el.querySelector('.vpc-icon-pause');
+                        if (pi) pi.style.display = ''; if (pa) pa.style.display = 'none';
+                        el.classList.remove('vpc-playing');
+                    };
+                }
+                const audio = _vpcAudios[id];
+                if (audio.paused) {
+                    Object.entries(_vpcAudios).forEach(([k, a]) => {
+                        if (k !== id && !a.paused) {
+                            a.pause();
+                            const oel = document.getElementById(k);
+                            if (oel) { const pi = oel.querySelector('.vpc-icon-play'), pa = oel.querySelector('.vpc-icon-pause'); if (pi) pi.style.display = ''; if (pa) pa.style.display = 'none'; oel.classList.remove('vpc-playing'); }
+                        }
+                    });
+                    audio.play().catch(() => {});
+                    const pi = el.querySelector('.vpc-icon-play'), pa = el.querySelector('.vpc-icon-pause');
+                    if (pi) pi.style.display = 'none'; if (pa) pa.style.display = '';
+                    el.classList.add('vpc-playing');
+                } else {
+                    audio.pause();
+                    const pi = el.querySelector('.vpc-icon-play'), pa = el.querySelector('.vpc-icon-pause');
+                    if (pi) pi.style.display = ''; if (pa) pa.style.display = 'none';
+                    el.classList.remove('vpc-playing');
+                }
+            };
             let threadRecorder = null;
             let threadRecordingChunks = [];
             let threadRecordingStream = null;
@@ -2197,7 +2299,9 @@
                         return;
                     }
                     grid.innerHTML = data.items.map((m) => {
-                        const last = m.last_message || 'Совпадение! Начните диалог';
+                        let last = m.last_message || 'Совпадение! Начните диалог';
+                        if (last.startsWith('__voice__:')) last = '🎤 Голосовое сообщение';
+                        else if (last.startsWith('__gift__:')) { const _gp = last.slice(8).split('|'); last = '🎁 ' + (_gp[1] || 'Подарок'); }
                         const photoStyle = m.primary_photo_url
                             ? `style="background-image:url('${String(m.primary_photo_url).replace(/'/g, '&#39;')}');background-size:cover;background-position:center;"`
                             : '';
@@ -2208,8 +2312,10 @@
                                         <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"/>
                                     </svg>
                                 </div>
-                                <div class="match-name">${m.first_name || 'User'}</div>
-                                <div class="match-message">${last}</div>
+                                <div class="match-info">
+                                    <div class="match-name">${m.first_name || 'User'}</div>
+                                    <div class="match-message">${last}</div>
+                                </div>
                             </div>
                         `;
                     }).join('');
@@ -2239,7 +2345,9 @@
                         return;
                     }
                     list.innerHTML = inboxMatches.map((m) => {
-                        const last = m.last_message || 'Начните общение';
+                        let last = m.last_message || 'Начните общение';
+                        if (last.startsWith('__voice__:')) last = '🎤 Голосовое сообщение';
+                        else if (last.startsWith('__gift__:')) { const _gp = last.slice(8).split('|'); last = '🎁 ' + (_gp[1] || 'Подарок'); }
                         const unread = Number(m.unread_count || 0);
                         const avatarStyle = m.primary_photo_url
                             ? `style="background-image:url('${String(m.primary_photo_url).replace(/'/g, '&#39;')}');background-size:cover;background-position:center;"`
@@ -2301,7 +2409,9 @@
 
                             if (raw.startsWith(VOICE_PREFIX)) {
                                 const src = raw.slice(VOICE_PREFIX.length).replace(/"/g, '&quot;');
-                                return `<div class="bubble ${klass}"><audio class="voice-player" controls preload="none" src="${src}"></audio></div>`;
+                                const vpId = 'vp-' + Math.random().toString(36).slice(2, 8);
+                                const bars = Array.from({length: 22}, (_, i) => `<span style="height:${3 + Math.round(Math.abs(Math.sin(i * 0.78)) * 9)}px"></span>`).join('');
+                                return `<div class="bubble ${klass}"><div class="vpc-wrap" id="${vpId}" data-src="${src}"><button class="vpc-play-btn" onclick="toggleVpc('${vpId}')"><svg class="vpc-icon-play" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg><svg class="vpc-icon-pause" viewBox="0 0 24 24" fill="currentColor" style="display:none"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg></button><div class="vpc-bars">${bars}</div><span class="vpc-time">0:00</span></div></div>`;
                             }
 
                             if (raw.startsWith(GIFT_PREFIX)) {
