@@ -586,6 +586,7 @@
             flex-direction: column;
             gap: 10px;
             min-height: 60vh;
+            min-width: 0;
             padding-bottom: calc(92px + env(safe-area-inset-bottom));
         }
 
@@ -620,6 +621,8 @@
             gap: 8px;
             max-height: 48vh;
             overflow-y: auto;
+            overflow-x: hidden;
+            min-width: 0;
             padding-right: 4px;
         }
 
@@ -639,6 +642,7 @@
             position: relative;
             cursor: pointer;
             -webkit-user-select: none;
+            -webkit-touch-callout: none;
             user-select: none;
         }
 
@@ -783,10 +787,15 @@
             display: flex;
             gap: 8px;
             align-items: center;
+            width: 100%;
+            min-width: 0;
+            overflow: hidden;
         }
 
         .thread-compose input {
             flex: 1;
+            width: 0;
+            min-width: 0;
             background: rgba(255, 255, 255, 0.08);
             border: 1px solid rgba(205, 132, 167, 0.35);
             color: #ffe7f2;
@@ -803,6 +812,22 @@
             padding: 10px 14px;
             cursor: pointer;
             font-weight: 600;
+            flex-shrink: 0;
+        }
+
+        @media (max-width: 390px) {
+            .thread-compose {
+                gap: 6px;
+            }
+            .thread-action-btn {
+                width: 42px;
+                height: 42px;
+                border-radius: 12px;
+            }
+            #thread-send-btn {
+                padding: 10px 12px;
+                font-size: 14px;
+            }
         }
 
         .thread-action-btn {
@@ -2285,6 +2310,7 @@
 
             // ---- Реакции ----
             const _reactions = {}; // msgIndex -> emoji
+            const _vpcAudios = {};
             window._closeReactPicker = function(el) {
                 const p = el && el.closest('.bubble-row') && el.closest('.bubble-row').querySelector('.react-picker');
                 if (p) p.remove();
@@ -2353,7 +2379,7 @@
 
                 return `<div class="bubble-row ${klass}" data-bubble-id="${idx}">
                     <div class="bubble ${klass}" oncontextmenu="return false"
-                         ontouchstart="_bTouchStart(event,${idx})" ontouchend="_bTouchEnd(event)"
+                         ontouchstart="_bTouchStart(event,${idx})" ontouchend="_bTouchEnd(event)" ontouchcancel="_bTouchCancel(event)" ontouchmove="_bTouchMove(event)"
                          onmousedown="_bMouseDown(event,${idx})" onmouseup="_bMouseUp(event)">${bubbleInner}</div>
                     <div class="bubble-meta">
                         <span class="bubble-time">${ts}</span>
@@ -2369,6 +2395,12 @@
                 _longPressTimer = setTimeout(() => _showReactPicker(e.currentTarget, idx), 500);
             };
             window._bTouchEnd = function(e) {
+                clearTimeout(_longPressTimer);
+            };
+            window._bTouchMove = function(e) {
+                clearTimeout(_longPressTimer);
+            };
+            window._bTouchCancel = function(e) {
                 clearTimeout(_longPressTimer);
             };
             window._bMouseDown = function(e, idx) {
@@ -2693,7 +2725,6 @@
                 const voiceBtn = document.getElementById('thread-voice-btn');
                 if (voiceBtn) {
                     voiceBtn.classList.remove('recording');
-                    voiceBtn.textContent = '🎤';
                 }
                 const list = document.getElementById('messages-list');
                 const wrap = document.getElementById('thread-wrap');
@@ -2757,7 +2788,6 @@
                 if (threadRecorder && threadRecorder.state === 'recording') {
                     threadRecorder.stop();
                     voiceBtn.classList.remove('recording');
-                    voiceBtn.textContent = '🎤';
                     return;
                 }
 
@@ -2769,7 +2799,13 @@
                 try {
                     threadRecordingStream = await navigator.mediaDevices.getUserMedia({ audio: true });
                     threadRecordingChunks = [];
-                    threadRecorder = new MediaRecorder(threadRecordingStream);
+                    let recorderOptions = {};
+                    if (typeof MediaRecorder.isTypeSupported === 'function') {
+                        if (MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) recorderOptions = { mimeType: 'audio/webm;codecs=opus' };
+                        else if (MediaRecorder.isTypeSupported('audio/webm')) recorderOptions = { mimeType: 'audio/webm' };
+                        else if (MediaRecorder.isTypeSupported('audio/mp4')) recorderOptions = { mimeType: 'audio/mp4' };
+                    }
+                    threadRecorder = new MediaRecorder(threadRecordingStream, recorderOptions);
                     threadRecorder.ondataavailable = (event) => {
                         if (event.data && event.data.size > 0) {
                             threadRecordingChunks.push(event.data);
@@ -2777,6 +2813,9 @@
                     };
                     threadRecorder.onstop = async () => {
                         try {
+                            if (!threadRecordingChunks.length) {
+                                throw new Error('voice_empty');
+                            }
                             const blob = new Blob(threadRecordingChunks, { type: threadRecorder.mimeType || 'audio/webm' });
                             const dataUrl = await blobToDataUrl(blob);
                             await sendThreadPayload(`${VOICE_PREFIX}${dataUrl}`);
@@ -2784,14 +2823,16 @@
                         } catch (e) {
                             alert('Не удалось отправить голосовое');
                         } finally {
+                            if (voiceBtn) {
+                                voiceBtn.classList.remove('recording');
+                            }
                             stopThreadRecordingStream();
                             threadRecordingChunks = [];
                             threadRecorder = null;
                         }
                     };
-                    threadRecorder.start();
+                    threadRecorder.start(250);
                     voiceBtn.classList.add('recording');
-                    voiceBtn.textContent = '⏹';
                 } catch (e) {
                     stopThreadRecordingStream();
                     threadRecorder = null;
