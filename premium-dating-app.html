@@ -1304,6 +1304,88 @@
             font-size: 18px;
         }
 
+        .gift-picker-modal {
+            position: fixed;
+            inset: 0;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            background: rgba(0, 0, 0, 0.72);
+            z-index: 1300;
+            padding: 18px;
+        }
+
+        .gift-picker-modal.show {
+            display: flex;
+        }
+
+        .gift-picker-content {
+            width: 100%;
+            max-width: 430px;
+            background: rgba(28, 21, 33, 0.98);
+            border: 1px solid rgba(205, 132, 167, 0.35);
+            border-radius: 20px;
+            padding: 16px;
+            box-shadow: 0 16px 48px rgba(0, 0, 0, 0.48);
+        }
+
+        .gift-picker-title {
+            color: #ffe7f2;
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 12px;
+        }
+
+        .gift-picker-list {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 10px;
+            margin-bottom: 14px;
+        }
+
+        .gift-option {
+            width: 100%;
+            border: 1px solid rgba(205, 132, 167, 0.36);
+            border-radius: 14px;
+            background: rgba(205, 132, 167, 0.12);
+            color: #ffe7f2;
+            text-align: left;
+            padding: 10px 12px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: pointer;
+        }
+
+        .gift-option:hover {
+            background: rgba(205, 132, 167, 0.2);
+            border-color: rgba(205, 132, 167, 0.5);
+        }
+
+        .gift-option-name {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 600;
+        }
+
+        .gift-option-stars {
+            color: #ffd966;
+            font-weight: 700;
+            white-space: nowrap;
+        }
+
+        .gift-picker-cancel {
+            width: 100%;
+            border: 1px solid rgba(205, 132, 167, 0.34);
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.06);
+            color: #f4d8e6;
+            padding: 10px 12px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
         .muted-line {
             color: rgba(224, 181, 200, 0.68);
             font-size: 12px;
@@ -1870,6 +1952,27 @@
             </div>
         </div>
     </div>
+
+    <div class="gift-picker-modal" id="gift-picker-modal">
+        <div class="gift-picker-content">
+            <div class="gift-picker-title">Выберите подарок</div>
+            <div class="gift-picker-list" id="gift-picker-list">
+                <button class="gift-option" type="button" data-gift-slug="rose">
+                    <span class="gift-option-name">🌹 Rose</span>
+                    <span class="gift-option-stars">25⭐</span>
+                </button>
+                <button class="gift-option" type="button" data-gift-slug="heart">
+                    <span class="gift-option-name">💖 Heart</span>
+                    <span class="gift-option-stars">50⭐</span>
+                </button>
+                <button class="gift-option" type="button" data-gift-slug="crown">
+                    <span class="gift-option-name">👑 Crown</span>
+                    <span class="gift-option-stars">100⭐</span>
+                </button>
+            </div>
+            <button class="gift-picker-cancel" id="gift-picker-cancel" type="button">Отмена</button>
+        </div>
+    </div>
     
     <script>
         const query = new URLSearchParams(window.location.search);
@@ -2311,6 +2414,11 @@
             // ---- Реакции ----
             const _reactions = {}; // msgIndex -> emoji
             const _vpcAudios = {};
+            const GIFT_CATALOG = {
+                rose: { title: 'Rose', stars: 25, emoji: '🌹' },
+                heart: { title: 'Heart', stars: 50, emoji: '💖' },
+                crown: { title: 'Crown', stars: 100, emoji: '👑' },
+            };
             window._closeReactPicker = function(el) {
                 const p = el && el.closest('.bubble-row') && el.closest('.bubble-row').querySelector('.react-picker');
                 if (p) p.remove();
@@ -2379,6 +2487,7 @@
 
                 return `<div class="bubble-row ${klass}" data-bubble-id="${idx}">
                     <div class="bubble ${klass}" oncontextmenu="return false"
+                         onclick="_bTap(event,${idx})"
                          ontouchstart="_bTouchStart(event,${idx})" ontouchend="_bTouchEnd(event)" ontouchcancel="_bTouchCancel(event)" ontouchmove="_bTouchMove(event)"
                          onmousedown="_bMouseDown(event,${idx})" onmouseup="_bMouseUp(event)">${bubbleInner}</div>
                     <div class="bubble-meta">
@@ -2403,6 +2512,13 @@
             window._bTouchCancel = function(e) {
                 clearTimeout(_longPressTimer);
             };
+            window._bTap = function(e, idx) {
+                const target = e.target;
+                if (target && (target.closest('button') || target.closest('audio') || target.closest('.vpc-wrap') || target.closest('.react-picker'))) {
+                    return;
+                }
+                _showReactPicker(e.currentTarget, idx);
+            };
             window._bMouseDown = function(e, idx) {
                 if (e.button !== 0) return;
                 _longPressTimer = setTimeout(() => _showReactPicker(e.currentTarget, idx), 600);
@@ -2413,12 +2529,17 @@
             function _showReactPicker(bubble, idx) {
                 const row = bubble.closest('.bubble-row');
                 if (!row) return;
-                if (row.querySelector('.react-picker')) return;
+                const existing = row.querySelector('.react-picker');
+                if (existing) {
+                    existing.remove();
+                    return;
+                }
                 const picker = document.createElement('div');
                 picker.className = 'react-picker';
                 picker.innerHTML = REACT_EMOJIS.map(em => `<span onclick="setReaction(${idx},'${em}')">${em}</span>`).join('');
                 bubble.style.position = 'relative';
                 bubble.appendChild(picker);
+                picker.addEventListener('click', (ev) => ev.stopPropagation());
                 const close = (ev) => { if (!picker.contains(ev.target)) { picker.remove(); document.removeEventListener('click', close); } };
                 setTimeout(() => document.addEventListener('click', close), 0);
             }
@@ -2850,9 +2971,30 @@
                     return;
                 }
 
-                const choice = window.prompt('Выберите подарок: rose (25⭐), heart (50⭐), crown (100⭐)', 'rose');
-                const giftSlug = String(choice || 'rose').trim().toLowerCase();
-                if (!giftSlug) return;
+                openGiftPicker();
+            }
+
+            function openGiftPicker() {
+                const modal = document.getElementById('gift-picker-modal');
+                if (!modal) return;
+                modal.classList.add('show');
+            }
+
+            function closeGiftPicker() {
+                const modal = document.getElementById('gift-picker-modal');
+                if (!modal) return;
+                modal.classList.remove('show');
+            }
+
+            async function sendSelectedGift(giftSlug) {
+                if (!activeThreadMatchId) return;
+                if (!giftSlug || !GIFT_CATALOG[giftSlug]) return;
+
+                const giftMeta = GIFT_CATALOG[giftSlug];
+                closeGiftPicker();
+
+                const giftBtn = document.getElementById('thread-gift-btn');
+                if (giftBtn) giftBtn.disabled = true;
 
                 try {
                     const invoice = await apiRequest('/api/gifts/invoice', {
@@ -2877,7 +3019,9 @@
                         }
                     });
                 } catch (e) {
-                    alert('Не удалось создать счёт на подарок');
+                    alert(`Не удалось отправить подарок ${giftMeta.emoji} ${giftMeta.title}`);
+                } finally {
+                    if (giftBtn) giftBtn.disabled = false;
                 }
             }
 
@@ -3404,6 +3548,28 @@
             if (threadGiftBtn) {
                 threadGiftBtn.addEventListener('click', () => {
                     sendGiftWithStars();
+                });
+            }
+
+            const giftPickerModal = document.getElementById('gift-picker-modal');
+            if (giftPickerModal) {
+                giftPickerModal.addEventListener('click', (e) => {
+                    if (e.target === giftPickerModal) closeGiftPicker();
+                });
+            }
+
+            const giftPickerCancel = document.getElementById('gift-picker-cancel');
+            if (giftPickerCancel) {
+                giftPickerCancel.addEventListener('click', () => closeGiftPicker());
+            }
+
+            const giftPickerList = document.getElementById('gift-picker-list');
+            if (giftPickerList) {
+                giftPickerList.addEventListener('click', (e) => {
+                    const btn = e.target && e.target.closest ? e.target.closest('.gift-option') : null;
+                    if (!btn) return;
+                    const slug = btn.getAttribute('data-gift-slug') || '';
+                    sendSelectedGift(slug);
                 });
             }
 
