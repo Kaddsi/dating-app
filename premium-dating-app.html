@@ -14,7 +14,7 @@
         
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: radial-gradient(120% 120% at 50% 10%, #fff7f3 0%, #ffece6 46%, #fbe3de 100%);
+            background: #18131b;
             min-height: 100vh;
             overflow-x: hidden;
             position: relative;
@@ -35,7 +35,7 @@
             left: 40px;
             width: 200px;
             height: 200px;
-            background: #f9a8d4;
+            background: #7c3b5a;
         }
         
         .bg-blob-2 {
@@ -43,7 +43,7 @@
             right: 40px;
             width: 250px;
             height: 250px;
-            background: #fdba74;
+            background: #5b3448;
             animation-delay: 1s;
         }
         
@@ -74,26 +74,23 @@
         }
         
         .logo {
-            background: rgba(255, 255, 255, 0.58);
+            background: rgba(255, 255, 255, 0.06);
             backdrop-filter: blur(12px);
-            border: 1px solid rgba(244, 181, 196, 0.52);
+            border: 1px solid rgba(205, 132, 167, 0.32);
             border-radius: 16px;
             padding: 12px 20px;
             font-size: 18px;
             font-weight: 600;
-            background: linear-gradient(135deg, #f472b6, #fb7185);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
+            color: #f4c7da;
         }
         
         .header-btn {
             width: 44px;
             height: 44px;
             border-radius: 50%;
-            background: rgba(255, 255, 255, 0.62);
+            background: rgba(255, 255, 255, 0.08);
             backdrop-filter: blur(12px);
-            border: 1px solid rgba(244, 181, 196, 0.52);
+            border: 1px solid rgba(205, 132, 167, 0.3);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -102,14 +99,14 @@
         }
         
         .header-btn:hover {
-            background: rgba(255, 255, 255, 0.78);
+            background: rgba(255, 255, 255, 0.14);
             transform: scale(1.05);
         }
         
         .header-btn svg {
             width: 22px;
             height: 22px;
-            color: #7a3f56;
+            color: #f3cade;
         }
         
         /* Экраны */
@@ -130,13 +127,13 @@
         
         /* Карточка пользователя */
         .user-card {
-            background: rgba(255, 255, 255, 0.72);
+            background: rgba(33, 24, 35, 0.9);
             backdrop-filter: blur(16px);
-            border: 1px solid rgba(244, 181, 196, 0.5);
+            border: 1px solid rgba(205, 132, 167, 0.22);
             border-radius: 24px;
             padding: 20px;
             margin-bottom: 24px;
-            box-shadow: 0 14px 34px rgba(176, 86, 117, 0.16);
+            box-shadow: 0 14px 34px rgba(0, 0, 0, 0.35);
             position: relative;
         }
         
@@ -158,7 +155,7 @@
         }
         
         .photo-area {
-            background: linear-gradient(135deg, rgba(252, 231, 243, 0.9), rgba(255, 237, 213, 0.9));
+            background: #2a1f2e;
             height: 380px;
             border-radius: 16px;
             margin-bottom: 16px;
@@ -172,7 +169,7 @@
         .photo-gradient {
             position: absolute;
             inset: 0;
-            background: linear-gradient(180deg, rgba(70, 32, 45, 0.06) 0%, rgba(70, 32, 45, 0.36) 100%);
+            background: rgba(15, 10, 18, 0.28);
         }
         
         .photo-placeholder {
@@ -224,9 +221,9 @@
         }
         
         .user-info {
-            background: rgba(255, 255, 255, 0.62);
+            background: rgba(255, 255, 255, 0.05);
             backdrop-filter: blur(8px);
-            border: 1px solid rgba(244, 181, 196, 0.34);
+            border: 1px solid rgba(205, 132, 167, 0.25);
             border-radius: 16px;
             padding: 16px;
         }
@@ -241,12 +238,12 @@
         .user-name h3 {
             font-size: 26px;
             font-weight: 600;
-            color: #6f344a;
+            color: #ffe7f2;
         }
         
         .user-name span {
             font-size: 22px;
-            color: rgba(111, 52, 74, 0.9);
+            color: rgba(255, 231, 242, 0.9);
         }
         
         .verified-badge {
@@ -256,7 +253,7 @@
         }
         
         .user-bio {
-            color: rgba(90, 50, 63, 0.86);
+            color: rgba(255, 223, 236, 0.86);
             font-size: 14px;
             line-height: 1.5;
             margin-bottom: 10px;
@@ -266,7 +263,7 @@
             display: flex;
             align-items: center;
             gap: 6px;
-            color: rgba(117, 67, 84, 0.78);
+            color: rgba(230, 189, 207, 0.8);
             font-size: 13px;
             margin-bottom: 10px;
         }
@@ -283,9 +280,9 @@
         }
         
         .interest-tag {
-            background: rgba(251, 207, 232, 0.45);
-            color: #8d3f63;
-            border: 1px solid rgba(236, 72, 153, 0.26);
+            background: rgba(205, 132, 167, 0.22);
+            color: #ffd9ea;
+            border: 1px solid rgba(205, 132, 167, 0.36);
             padding: 4px 10px;
             border-radius: 12px;
             font-size: 12px;
@@ -321,8 +318,8 @@
         .action-btn.undo {
             width: 52px;
             height: 52px;
-            background: linear-gradient(135deg, rgba(251, 207, 232, 0.75), rgba(254, 215, 170, 0.62));
-            border-color: rgba(236, 72, 153, 0.38);
+            background: rgba(205, 132, 167, 0.3);
+            border-color: rgba(205, 132, 167, 0.45);
         }
 
         .action-btn.undo svg {
@@ -346,8 +343,8 @@
         .action-btn.superlike {
             width: 52px;
             height: 52px;
-            background: linear-gradient(135deg, rgba(251, 207, 232, 0.72), rgba(244, 114, 182, 0.42));
-            border-color: rgba(244, 114, 182, 0.42);
+            background: rgba(205, 132, 167, 0.24);
+            border-color: rgba(205, 132, 167, 0.4);
         }
         
         .action-btn.superlike svg {
@@ -376,10 +373,10 @@
             transform: translateX(-50%);
             width: 100%;
             max-width: 450px;
-            background: linear-gradient(145deg, rgba(255, 247, 243, 0.94), rgba(255, 237, 231, 0.92));
+            background: rgba(28, 21, 31, 0.96);
             backdrop-filter: blur(18px);
-            border-top: 1px solid rgba(244, 181, 196, 0.42);
-            box-shadow: 0 -14px 34px rgba(176, 86, 117, 0.14);
+            border-top: 1px solid rgba(205, 132, 167, 0.26);
+            box-shadow: 0 -14px 34px rgba(0, 0, 0, 0.34);
             padding: 12px 20px;
             display: flex;
             justify-content: space-around;
@@ -401,17 +398,17 @@
             padding: 8px;
             border-radius: 12px;
             transition: all 0.3s;
-            color: rgba(145, 83, 105, 0.72);
+            color: rgba(226, 186, 204, 0.74);
         }
         
         .nav-btn:hover {
-            background: rgba(251, 207, 232, 0.38);
+            background: rgba(205, 132, 167, 0.2);
         }
         
         .nav-btn.active {
-            color: #be185d;
-            background: rgba(251, 207, 232, 0.52);
-            box-shadow: inset 0 0 0 1px rgba(236, 72, 153, 0.36);
+            color: #ffd2e7;
+            background: rgba(205, 132, 167, 0.24);
+            box-shadow: inset 0 0 0 1px rgba(205, 132, 167, 0.4);
         }
 
         body.keyboard-open .bottom-nav {
@@ -445,23 +442,23 @@
         }
         
         .match-card {
-            background: linear-gradient(145deg, rgba(255, 255, 255, 0.74), rgba(255, 238, 231, 0.82));
+            background: rgba(36, 27, 39, 0.9);
             backdrop-filter: blur(16px);
-            border: 1px solid rgba(244, 181, 196, 0.46);
+            border: 1px solid rgba(205, 132, 167, 0.28);
             border-radius: 20px;
             padding: 12px;
             cursor: pointer;
             transition: all 0.3s;
-            box-shadow: 0 12px 30px rgba(176, 86, 117, 0.15);
+            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.34);
         }
         
         .match-card:hover {
-            background: linear-gradient(145deg, rgba(255, 255, 255, 0.88), rgba(254, 226, 226, 0.9));
+            background: rgba(45, 33, 48, 0.95);
             transform: translateY(-3px);
         }
         
         .match-photo {
-            background: linear-gradient(135deg, rgba(252, 231, 243, 0.95), rgba(255, 237, 213, 0.92));
+            background: #2c2130;
             height: 160px;
             border-radius: 14px;
             margin-bottom: 8px;
@@ -477,14 +474,14 @@
         }
         
         .match-name {
-            color: #74374e;
+            color: #ffe7f2;
             font-weight: 600;
             font-size: 15px;
             margin-bottom: 4px;
         }
         
         .match-message {
-            color: rgba(124, 73, 91, 0.8);
+            color: rgba(224, 181, 200, 0.8);
             font-size: 12px;
         }
 
@@ -496,8 +493,8 @@
         }
 
         .conversation-card {
-            background: rgba(255, 255, 255, 0.72);
-            border: 1px solid rgba(244, 181, 196, 0.42);
+            background: rgba(34, 25, 37, 0.9);
+            border: 1px solid rgba(205, 132, 167, 0.28);
             border-radius: 14px;
             padding: 12px;
             cursor: pointer;
@@ -511,7 +508,7 @@
             height: 52px;
             border-radius: 50%;
             flex-shrink: 0;
-            background: linear-gradient(135deg, rgba(251, 207, 232, 0.78), rgba(254, 215, 170, 0.7));
+            background: #3a2b3f;
             background-size: cover;
             background-position: center;
             display: flex;
@@ -540,7 +537,7 @@
         }
 
         .conversation-name {
-            color: #6f344a;
+            color: #ffe7f2;
             font-weight: 600;
             font-size: 15px;
         }
@@ -559,7 +556,7 @@
         }
 
         .conversation-last {
-            color: rgba(117, 67, 84, 0.78);
+            color: rgba(224, 181, 200, 0.78);
             font-size: 13px;
             white-space: nowrap;
             overflow: hidden;
@@ -586,14 +583,14 @@
             display: flex;
             align-items: center;
             gap: 8px;
-            color: #6f344a;
+            color: #ffe7f2;
             font-weight: 600;
         }
 
         .thread-back {
-            border: 1px solid rgba(244, 181, 196, 0.5);
-            background: rgba(255, 255, 255, 0.7);
-            color: #7a3f56;
+            border: 1px solid rgba(205, 132, 167, 0.4);
+            background: rgba(255, 255, 255, 0.08);
+            color: #f7cade;
             border-radius: 10px;
             padding: 6px 10px;
             cursor: pointer;
@@ -618,14 +615,14 @@
 
         .bubble.in {
             align-self: flex-start;
-            background: rgba(255, 255, 255, 0.74);
-            color: #6f344a;
+            background: rgba(255, 255, 255, 0.08);
+            color: #ffe7f2;
         }
 
         .bubble.out {
             align-self: flex-end;
-            background: rgba(244, 114, 182, 0.3);
-            color: #6f344a;
+            background: rgba(205, 132, 167, 0.32);
+            color: #ffeef7;
         }
 
         .thread-compose {
@@ -636,18 +633,18 @@
 
         .thread-compose input {
             flex: 1;
-            background: rgba(255, 255, 255, 0.78);
-            border: 1px solid rgba(244, 181, 196, 0.45);
-            color: #6f344a;
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(205, 132, 167, 0.35);
+            color: #ffe7f2;
             border-radius: 10px;
             padding: 10px 12px;
             font-size: 16px;
         }
 
         .thread-compose button {
-            border: 1px solid rgba(236, 72, 153, 0.34);
-            background: rgba(251, 207, 232, 0.56);
-            color: #8d3f63;
+            border: 1px solid rgba(205, 132, 167, 0.42);
+            background: rgba(205, 132, 167, 0.26);
+            color: #ffe7f2;
             border-radius: 10px;
             padding: 10px 14px;
             cursor: pointer;
@@ -661,9 +658,9 @@
             align-items: center;
             justify-content: center;
             border-radius: 12px;
-            border: 1px solid rgba(236, 72, 153, 0.28);
-            background: rgba(251, 207, 232, 0.46);
-            color: #9d466b;
+            border: 1px solid rgba(205, 132, 167, 0.34);
+            background: rgba(205, 132, 167, 0.2);
+            color: #ffd6e8;
             font-size: 18px;
             cursor: pointer;
         }
@@ -684,11 +681,11 @@
             display: inline-flex;
             align-items: center;
             gap: 6px;
-            background: rgba(251, 207, 232, 0.62);
-            border: 1px solid rgba(236, 72, 153, 0.34);
+            background: rgba(205, 132, 167, 0.26);
+            border: 1px solid rgba(205, 132, 167, 0.4);
             border-radius: 999px;
             padding: 6px 10px;
-            color: #8d3f63;
+            color: #ffe7f2;
             font-size: 12px;
             font-weight: 700;
         }
@@ -703,14 +700,14 @@
             width: 100px;
             height: 100px;
             border-radius: 50%;
-            background: linear-gradient(135deg, rgba(251, 207, 232, 0.82), rgba(254, 215, 170, 0.72));
+            background: #3a2b3f;
             margin: 0 auto 16px;
             display: flex;
             align-items: center;
             justify-content: center;
             cursor: pointer;
-            border: 2px solid rgba(236, 72, 153, 0.28);
-            box-shadow: 0 10px 22px rgba(15, 23, 42, 0.35);
+            border: 2px solid rgba(205, 132, 167, 0.32);
+            box-shadow: 0 10px 22px rgba(0, 0, 0, 0.35);
             transition: transform 0.2s ease, box-shadow 0.2s ease;
         }
 
@@ -727,7 +724,7 @@
 
         .profile-photo-hint {
             font-size: 12px;
-            color: rgba(117, 67, 84, 0.86);
+            color: rgba(224, 181, 200, 0.86);
             margin-top: -8px;
             margin-bottom: 10px;
         }
@@ -739,26 +736,26 @@
         .profile-name {
             font-size: 24px;
             font-weight: 600;
-            color: #6f344a;
+            color: #ffe7f2;
             margin-bottom: 4px;
         }
         
         .profile-bio {
-            color: rgba(117, 67, 84, 0.75);
+            color: rgba(224, 181, 200, 0.75);
             font-size: 14px;
         }
         
         .profile-section {
-            background: linear-gradient(145deg, rgba(255, 255, 255, 0.74), rgba(255, 239, 233, 0.84));
+            background: rgba(33, 24, 35, 0.9);
             backdrop-filter: blur(14px);
-            border: 1px solid rgba(244, 181, 196, 0.42);
+            border: 1px solid rgba(205, 132, 167, 0.3);
             border-radius: 16px;
             padding: 16px;
             margin-bottom: 12px;
         }
         
         .section-title {
-            color: #7a3f56;
+            color: #ffd6e8;
             font-weight: 600;
             font-size: 14px;
             margin-bottom: 12px;
@@ -769,7 +766,7 @@
             justify-content: space-between;
             align-items: center;
             padding: 12px 0;
-            border-bottom: 1px solid rgba(244, 181, 196, 0.34);
+            border-bottom: 1px solid rgba(205, 132, 167, 0.24);
         }
         
         .profile-item:last-child {
@@ -777,19 +774,19 @@
         }
         
         .profile-item-label {
-            color: rgba(117, 67, 84, 0.8);
+            color: rgba(224, 181, 200, 0.8);
             font-size: 14px;
         }
         
         .profile-item-value {
-            color: #6f344a;
+            color: #ffe7f2;
             font-size: 14px;
             font-weight: 500;
         }
         
         .hint-text {
             text-align: center;
-            color: rgba(117, 67, 84, 0.72);
+            color: rgba(224, 181, 200, 0.72);
             font-size: 12px;
             margin-top: 8px;
         }
@@ -811,9 +808,9 @@
         }
         
         .match-modal-content {
-            background: rgba(255, 247, 243, 0.96);
+            background: rgba(34, 25, 37, 0.96);
             backdrop-filter: blur(12px);
-            border: 1px solid rgba(244, 181, 196, 0.5);
+            border: 1px solid rgba(205, 132, 167, 0.34);
             border-radius: 24px;
             padding: 32px;
             text-align: center;
@@ -824,10 +821,11 @@
         .match-modal h2 {
             font-size: 32px;
             margin-bottom: 8px;
+            color: #ffe7f2;
         }
         
         .match-modal p {
-            color: rgba(117, 67, 84, 0.8);
+            color: rgba(224, 181, 200, 0.82);
             margin-bottom: 24px;
             font-size: 15px;
         }
@@ -835,9 +833,9 @@
         .match-modal button {
             width: 100%;
             padding: 14px;
-            background: linear-gradient(135deg, #f472b6, #fb7185);
-            color: #fff6fb;
-            border: none;
+            background: rgba(205, 132, 167, 0.34);
+            color: #ffe7f2;
+            border: 1px solid rgba(205, 132, 167, 0.45);
             border-radius: 12px;
             font-weight: 600;
             font-size: 15px;
@@ -846,7 +844,7 @@
         }
         
         .match-modal button:hover {
-            background: linear-gradient(135deg, #f9a8d4, #fb7185);
+            background: rgba(205, 132, 167, 0.46);
         }
         
         /* Пустое состояние */
@@ -863,20 +861,20 @@
         }
         
         .empty-state h3 {
-            color: #7a3f56;
+            color: #ffe7f2;
             font-size: 20px;
             margin-bottom: 8px;
         }
         
         .empty-state p {
-            color: rgba(117, 67, 84, 0.72);
+            color: rgba(224, 181, 200, 0.72);
             font-size: 14px;
         }
 
         .form-card {
-            background: rgba(255, 255, 255, 0.74);
+            background: rgba(34, 25, 37, 0.9);
             backdrop-filter: blur(10px);
-            border: 1px solid rgba(244, 181, 196, 0.42);
+            border: 1px solid rgba(205, 132, 167, 0.3);
             border-radius: 16px;
             padding: 16px;
             margin-bottom: 14px;
@@ -894,7 +892,7 @@
 
         .form-field label {
             display: block;
-            color: rgba(117, 67, 84, 0.84);
+            color: rgba(224, 181, 200, 0.84);
             font-size: 12px;
             margin-bottom: 6px;
         }
@@ -905,9 +903,9 @@
             width: 100%;
             padding: 10px 12px;
             border-radius: 10px;
-            border: 1px solid rgba(244, 181, 196, 0.48);
-            background: rgba(255, 255, 255, 0.84);
-            color: #6f344a;
+            border: 1px solid rgba(205, 132, 167, 0.38);
+            background: rgba(255, 255, 255, 0.08);
+            color: #ffe7f2;
             outline: none;
             font-size: 16px;
         }
@@ -934,15 +932,16 @@
         }
 
         .primary-btn {
-            background: linear-gradient(135deg, #f472b6, #fb7185);
-            color: #fff6fb;
+            background: rgba(205, 132, 167, 0.36);
+            color: #ffe7f2;
+            border: 1px solid rgba(205, 132, 167, 0.5);
             flex: 1;
         }
 
         .secondary-btn {
-            background: rgba(255, 255, 255, 0.8);
-            color: #8d3f63;
-            border: 1px solid rgba(244, 181, 196, 0.44);
+            background: rgba(255, 255, 255, 0.08);
+            color: #f0cde0;
+            border: 1px solid rgba(205, 132, 167, 0.32);
             flex: 1;
         }
 
@@ -968,20 +967,20 @@
         .edit-modal-content {
             width: 100%;
             max-width: 420px;
-            background: rgba(255, 245, 241, 0.96);
-            border: 1px solid rgba(244, 181, 196, 0.45);
+            background: rgba(34, 25, 37, 0.96);
+            border: 1px solid rgba(205, 132, 167, 0.34);
             border-radius: 16px;
             padding: 16px;
         }
 
         .edit-modal-content h3 {
-            color: #7a3f56;
+            color: #ffe7f2;
             margin-bottom: 12px;
             font-size: 18px;
         }
 
         .muted-line {
-            color: rgba(117, 67, 84, 0.68);
+            color: rgba(224, 181, 200, 0.68);
             font-size: 12px;
             margin-top: 8px;
         }
@@ -996,22 +995,22 @@
         }
 
         .community-hero {
-            background: linear-gradient(135deg, rgba(255, 255, 255, 0.78), rgba(252, 231, 243, 0.78), rgba(255, 237, 213, 0.72));
-            border: 1px solid rgba(244, 181, 196, 0.42);
+            background: rgba(34, 25, 37, 0.9);
+            border: 1px solid rgba(205, 132, 167, 0.32);
             border-radius: 24px;
             padding: 18px;
             margin-bottom: 16px;
-            box-shadow: 0 18px 38px rgba(176, 86, 117, 0.16);
+            box-shadow: 0 18px 38px rgba(0, 0, 0, 0.32);
         }
 
         .community-hero h2 {
-            color: #8d3f63;
+            color: #ffe7f2;
             font-size: 24px;
             margin-bottom: 8px;
         }
 
         .community-hero p {
-            color: rgba(117, 67, 84, 0.82);
+            color: rgba(224, 181, 200, 0.82);
             line-height: 1.45;
             font-size: 14px;
         }
@@ -1027,34 +1026,30 @@
             overflow: hidden;
             border-radius: 22px;
             padding: 18px;
-            border: 1px solid rgba(244, 181, 196, 0.35);
-            background: rgba(255,255,255,0.72);
+            border: 1px solid rgba(205, 132, 167, 0.32);
+            background: rgba(34, 25, 37, 0.9);
             backdrop-filter: blur(14px);
-            box-shadow: 0 14px 30px rgba(176, 86, 117, 0.14);
+            box-shadow: 0 14px 30px rgba(0, 0, 0, 0.3);
             cursor: pointer;
             transition: transform .22s ease, border-color .22s ease, background .22s ease;
         }
 
         .room-card:hover {
             transform: translateY(-2px);
-            border-color: rgba(236, 72, 153, 0.34);
-            background: rgba(252, 231, 243, 0.76);
+            border-color: rgba(205, 132, 167, 0.5);
+            background: rgba(42, 31, 45, 0.94);
         }
 
         .room-card::before {
-            content: '';
-            position: absolute;
-            inset: 0;
-            background: radial-gradient(circle at top right, rgba(244, 114, 182, 0.2), transparent 42%);
-            pointer-events: none;
+            content: none;
         }
 
         .room-card.dota2 {
-            background-image: linear-gradient(135deg, rgba(251, 207, 232, 0.64), rgba(255, 237, 213, 0.52));
+            background-image: none;
         }
 
         .room-card.cs2 {
-            background-image: linear-gradient(135deg, rgba(254, 215, 170, 0.62), rgba(251, 207, 232, 0.48));
+            background-image: none;
         }
 
         .room-top {
@@ -1066,15 +1061,15 @@
         }
 
         .room-title {
-            color: #fff;
+            color: #ffe7f2;
             font-size: 18px;
             font-weight: 700;
         }
 
         .room-online {
-            color: #d1fae5;
-            background: rgba(16, 185, 129, 0.18);
-            border: 1px solid rgba(16, 185, 129, 0.26);
+            color: #ffd8e9;
+            background: rgba(205, 132, 167, 0.16);
+            border: 1px solid rgba(205, 132, 167, 0.28);
             border-radius: 999px;
             padding: 5px 10px;
             font-size: 11px;
@@ -1082,7 +1077,7 @@
         }
 
         .room-desc {
-            color: rgba(255,255,255,0.78);
+            color: rgba(224,181,200,0.78);
             font-size: 13px;
             line-height: 1.5;
             margin-bottom: 12px;
@@ -1125,7 +1120,7 @@
             max-width: none;
             bottom: calc(74px + env(safe-area-inset-bottom));
             padding-top: 8px;
-            background: linear-gradient(180deg, rgba(15,23,42,0), rgba(9,18,28,0.9) 35%);
+            background: rgba(24, 19, 27, 0.9);
             z-index: 120;
         }
 
@@ -1136,20 +1131,20 @@
         .gaming-compose input {
             flex: 1;
             border-radius: 14px;
-            border: 1px solid rgba(244, 181, 196, 0.45);
-            background: rgba(255, 255, 255, 0.84);
-            color: #6f344a;
+            border: 1px solid rgba(205, 132, 167, 0.4);
+            background: rgba(255, 255, 255, 0.08);
+            color: #ffe7f2;
             padding: 12px 14px;
             font-size: 16px;
             line-height: 1.35;
         }
 
         .gaming-compose button {
-            border: none;
+            border: 1px solid rgba(205, 132, 167, 0.45);
             border-radius: 14px;
             padding: 0 16px;
-            background: linear-gradient(135deg, #f472b6, #fb7185);
-            color: #fff6fb;
+            background: rgba(205, 132, 167, 0.3);
+            color: #ffe7f2;
             font-weight: 800;
         }
 
@@ -1157,17 +1152,17 @@
             margin-bottom: 12px;
             padding: 14px;
             border-radius: 18px;
-            background: rgba(255,255,255,0.76);
-            border: 1px solid rgba(244,181,196,0.34);
-            color: rgba(117, 67, 84, 0.86);
+            background: rgba(255,255,255,0.08);
+            border: 1px solid rgba(205,132,167,0.28);
+            color: rgba(224, 181, 200, 0.86);
             font-size: 13px;
             line-height: 1.5;
         }
 
         .bubble.system {
-            background: rgba(251, 207, 232, 0.56);
-            border: 1px solid rgba(236, 72, 153, 0.28);
-            color: #8d3f63;
+            background: rgba(205, 132, 167, 0.26);
+            border: 1px solid rgba(205, 132, 167, 0.38);
+            color: #ffe7f2;
             align-self: center;
         }
     </style>
@@ -1382,7 +1377,7 @@
         
         <!-- Экран фильтров -->
         <div id="filters-screen" class="screen">
-            <h2 style="color: #7a3f56; font-size: 22px; margin-bottom: 20px;">Фильтры поиска</h2>
+            <h2 style="color: #ffe7f2; font-size: 22px; margin-bottom: 20px;">Фильтры поиска</h2>
 
             <div class="form-card">
                 <div class="form-grid">
@@ -1976,7 +1971,7 @@
                 if (!element) return;
                 const placeholder = element.querySelector('.photo-placeholder, svg');
                 if (photoUrl) {
-                    element.style.backgroundImage = `linear-gradient(180deg, rgba(15,23,42,0.12), rgba(15,23,42,0.42)), url("${String(photoUrl).replace(/"/g, '&quot;')}")`;
+                    element.style.backgroundImage = `url("${String(photoUrl).replace(/"/g, '&quot;')}")`;
                     element.style.backgroundSize = 'cover';
                     element.style.backgroundPosition = 'center';
                     if (placeholder) placeholder.style.display = 'none';
