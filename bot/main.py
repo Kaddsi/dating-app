@@ -747,15 +747,32 @@ async def cmd_start(message: Message, user_db: dict | None = None):
     init_user_storage(user_id)
     user = USER_STORAGE[user_id]
     
-    # If user is already verified (phone saved) or user_db exists, show main menu
+    # Always show the open-app button so already-verified users aren't re-asked for phone.
+    # If user has no verified record yet, also show language selection below.
+    if webapp_https_ready():
+        open_btn = InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(
+                text=BUTTON_TEXTS.get(lang, BUTTON_TEXTS["en"])["open"],
+                web_app=WebAppInfo(url=build_webapp_url(lang=lang))
+            )]
+        ])
+    else:
+        open_btn = None
+
     if user.get("verified") or user_db:
+        # Verified user — just show menu + app button
         await message.answer(
             UI_TEXTS[lang]["main_menu"],
             parse_mode="Markdown",
             reply_markup=get_main_menu_inline(lang)
         )
+        if open_btn:
+            await message.answer(
+                BUTTON_TEXTS.get(lang, BUTTON_TEXTS["en"])["open"],
+                reply_markup=open_btn
+            )
     else:
-        # New user - show greeting and language selection
+        # New/unverified user — greeting + language choice + app button
         greeting = TRANSLATIONS["en"]["greeting"]
         language_prompt = TRANSLATIONS["en"]["select_language"]
         await message.answer(
@@ -767,6 +784,11 @@ async def cmd_start(message: Message, user_db: dict | None = None):
             parse_mode="Markdown",
             reply_markup=get_language_keyboard()
         )
+        if open_btn:
+            await message.answer(
+                BUTTON_TEXTS.get(lang, BUTTON_TEXTS["en"])["open"],
+                reply_markup=open_btn
+            )
 
 
 @router.message(Command("profile"))
