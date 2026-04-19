@@ -424,7 +424,10 @@
         
         .nav-btn span {
             font-size: 11px;
-            font-weight: 500;
+            font-weight: 600;
+            display: block;
+            margin-top: 4px;
+            letter-spacing: 0.3px;
         }
         
         /* Экран мэтчей */
@@ -635,15 +638,16 @@
         .bubble-row.in  { align-self: flex-start; align-items: flex-start; }
 
         .bubble {
-            padding: 9px 12px;
+            padding: 10px 13px;
             border-radius: 12px;
-            font-size: 14px;
-            line-height: 1.35;
+            font-size: 15px;
+            line-height: 1.4;
             position: relative;
             cursor: pointer;
             -webkit-user-select: none;
             -webkit-touch-callout: none;
             user-select: none;
+            font-weight: 400;
         }
 
         .bubble.in {
@@ -1959,15 +1963,15 @@
             <div class="gift-picker-list" id="gift-picker-list">
                 <button class="gift-option" type="button" data-gift-slug="rose">
                     <span class="gift-option-name">🌹 Rose</span>
-                    <span class="gift-option-stars">25⭐</span>
+                    <span class="gift-option-stars">10⭐</span>
                 </button>
                 <button class="gift-option" type="button" data-gift-slug="heart">
                     <span class="gift-option-name">💖 Heart</span>
-                    <span class="gift-option-stars">50⭐</span>
+                    <span class="gift-option-stars">15⭐</span>
                 </button>
                 <button class="gift-option" type="button" data-gift-slug="crown">
                     <span class="gift-option-name">👑 Crown</span>
-                    <span class="gift-option-stars">100⭐</span>
+                    <span class="gift-option-stars">25⭐</span>
                 </button>
             </div>
             <button class="gift-picker-cancel" id="gift-picker-cancel" type="button">Отмена</button>
@@ -2415,9 +2419,9 @@
             const _reactions = {}; // msgIndex -> emoji
             const _vpcAudios = {};
             const GIFT_CATALOG = {
-                rose: { title: 'Rose', stars: 25, emoji: '🌹' },
-                heart: { title: 'Heart', stars: 50, emoji: '💖' },
-                crown: { title: 'Crown', stars: 100, emoji: '👑' },
+                rose: { title: 'Rose', stars: 10, emoji: '🌹' },
+                heart: { title: 'Heart', stars: 15, emoji: '💖' },
+                crown: { title: 'Crown', stars: 25, emoji: '👑' },
             };
             window._closeReactPicker = function(el) {
                 const p = el && el.closest('.bubble-row') && el.closest('.bubble-row').querySelector('.react-picker');
@@ -3689,6 +3693,19 @@
                 loadMatchesFromApi();
                 loadMessagesInboxFromApi();
                 loadGamingRoomsFromApi();
+                
+                // Handle deep link from notification reply button
+                if (tg && tg.startParam && tg.startParam.startsWith('reply_')) {
+                    const matchIdStr = tg.startParam.replace('reply_', '');
+                    const matchId = parseInt(matchIdStr, 10);
+                    if (!isNaN(matchId) && matchId > 0) {
+                        setTimeout(() => {
+                            openMessageThread(matchId);
+                            showScreen('messages');
+                        }, 500);
+                    }
+                }
+                
                 setInterval(() => {
                     refreshNotificationSummary();
                 }, 10000);

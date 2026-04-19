@@ -1020,6 +1020,7 @@ async def create_message(
                 receiver['telegram_id'],
                 (sender['first_name'] if sender else "Someone"),
                 _message_preview_for_notification(normalized_content),
+                payload.match_id,
             )
 
     payload_resp = {"id": int(inserted['id']), "created_at": str(inserted['created_at'])}
@@ -1125,6 +1126,7 @@ async def create_direct_message(
                 receiver['telegram_id'],
                 (sender['first_name'] if sender else "Someone"),
                 _message_preview_for_notification(normalized_content),
+                match_row['id'],
             )
 
     payload_resp = {"id": int(inserted['id']), "created_at": str(inserted['created_at'])}
@@ -1928,8 +1930,8 @@ async def send_match_notification(user1_tid, user2_tid, user1_name, user2_name, 
         return
 
 
-async def send_message_notification(receiver_tid: int, sender_name: str, text: str):
-    """Send real-time new message notification with beautiful formatting."""
+async def send_message_notification(receiver_tid: int, sender_name: str, text: str, match_id: int = None):
+    """Send real-time new message notification with beautiful formatting and reply button."""
     if not bot:
         return
     preview = text if len(text) <= 70 else (text[:67] + "...")
@@ -1941,8 +1943,12 @@ async def send_message_notification(receiver_tid: int, sender_name: str, text: s
         f"<i>Откройте приложение, чтобы ответить</i>"
     )
     
+    # Create deep link with match_id to open specific conversation
+    web_app_url = os.getenv("WEB_APP_URL", "https://t.me/premiumdatingbot/premium")
+    reply_url = f"https://t.me/premiumdatingbot/premium?startapp=reply_{match_id}" if match_id else web_app_url
+    
     keyboard = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="✉️ Ответить", url="https://t.me/premiumdatingbot/premium")]
+        [InlineKeyboardButton(text="✉️ Ответить", url=reply_url)]
     ])
     
     try:
