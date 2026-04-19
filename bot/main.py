@@ -14,6 +14,7 @@ from aiogram.filters import CommandStart, Command
 from aiogram.types import (
     Message,
     ReplyKeyboardMarkup,
+    ReplyKeyboardRemove,
     KeyboardButton,
     InlineKeyboardMarkup,
     InlineKeyboardButton,
@@ -709,6 +710,22 @@ def get_back_button(lang: str = "en") -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=buttons)
 
 
+def get_open_app_inline(lang: str = "en") -> InlineKeyboardMarkup:
+    """Single inline button to open Mini App in a clean onboarding flow."""
+    labels = BUTTON_TEXTS.get(lang, BUTTON_TEXTS["en"])
+    if webapp_https_ready():
+        btn = InlineKeyboardButton(
+            text=labels["open"],
+            web_app=WebAppInfo(url=build_webapp_url(lang=lang)),
+        )
+    else:
+        btn = InlineKeyboardButton(
+            text=labels["open_setup"],
+            callback_data="webapp_setup",
+        )
+    return InlineKeyboardMarkup(inline_keyboard=[[btn]])
+
+
 def get_webapp_keyboard(lang: str = "en") -> ReplyKeyboardMarkup:
     """
     Creates a keyboard with the Web App launch button.
@@ -734,7 +751,6 @@ def get_webapp_keyboard(lang: str = "en") -> ReplyKeyboardMarkup:
 # ═══════════════════════════════════════════════════════════════════════════════
 
 @router.message(CommandStart())
-@router.message(CommandStart())
 async def cmd_start(message: Message, user_db: dict | None = None):
     """
     /start command handler.
@@ -747,48 +763,26 @@ async def cmd_start(message: Message, user_db: dict | None = None):
     init_user_storage(user_id)
     user = USER_STORAGE[user_id]
     
-    # Always show the open-app button so already-verified users aren't re-asked for phone.
-    # If user has no verified record yet, also show language selection below.
-    if webapp_https_ready():
-        open_btn = InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(
-                text=BUTTON_TEXTS.get(lang, BUTTON_TEXTS["en"])["open"],
-                web_app=WebAppInfo(url=build_webapp_url(lang=lang))
-            )]
-        ])
-    else:
-        open_btn = None
-
     if user.get("verified") or user_db:
-        # Verified user — just show menu + app button
+        # Verified user — show compact main menu only
         await message.answer(
             UI_TEXTS[lang]["main_menu"],
             parse_mode="Markdown",
-            reply_markup=get_main_menu_inline(lang)
+            reply_markup=get_main_menu_inline(lang),
         )
-        if open_btn:
-            await message.answer(
-                BUTTON_TEXTS.get(lang, BUTTON_TEXTS["en"])["open"],
-                reply_markup=open_btn
-            )
     else:
-        # New/unverified user — greeting + language choice + app button
-        greeting = TRANSLATIONS["en"]["greeting"]
-        language_prompt = TRANSLATIONS["en"]["select_language"]
+        # New/unverified user — clean and ordered onboarding (no verification spam)
+        tr = TRANSLATIONS.get(lang, TRANSLATIONS["en"])
         await message.answer(
-            greeting,
-            parse_mode="Markdown"
-        )
-        await message.answer(
-            language_prompt,
+            tr["greeting"],
             parse_mode="Markdown",
-            reply_markup=get_language_keyboard()
+            reply_markup=ReplyKeyboardRemove(),
         )
-        if open_btn:
-            await message.answer(
-                BUTTON_TEXTS.get(lang, BUTTON_TEXTS["en"])["open"],
-                reply_markup=open_btn
-            )
+        await message.answer(
+            tr["select_language"],
+            parse_mode="Markdown",
+            reply_markup=get_language_keyboard(),
+        )
 
 
 @router.message(Command("profile"))
@@ -903,12 +897,9 @@ async def lang_select(query: CallbackQuery):
 
     await query.answer(f"✓ {LANG_LABELS.get(lang, 'English')}")
     await query.message.edit_text(
-        f"✓ *{LANG_LABELS.get(lang, 'English')} selected!*\n\n{UI_TEXTS[lang]['verify_prompt']}",
-        parse_mode="Markdown"
-    )
-    await query.message.answer(
-        UI_TEXTS[lang]["verify_prompt"],
-        reply_markup=get_phone_keyboard(lang)
+        f"✓ *{LANG_LABELS.get(lang, 'English')}*\n\n{BUTTON_TEXTS.get(lang, BUTTON_TEXTS['en'])['open']}",
+        parse_mode="Markdown",
+        reply_markup=get_open_app_inline(lang),
     )
 
 @router.callback_query(F.data == "start_begin")
