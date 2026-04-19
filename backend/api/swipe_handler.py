@@ -34,6 +34,8 @@ load_dotenv(Path(__file__).resolve().parents[2] / '.env')
 BOT_TOKEN = os.getenv("BOT_TOKEN", "")
 DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://user:password@localhost:5432/dating_db")
 ENVIRONMENT = os.getenv("ENVIRONMENT", "development").lower()
+# Telegram Mini App permalink, e.g. https://t.me/premiumdatingbot/premium
+TG_MINIAPP_LINK = os.getenv("TG_MINIAPP_LINK", "").strip().rstrip("/")
 RUN_WITHOUT_DB = os.getenv("RUN_WITHOUT_DB", "false").lower() == "true" and ENVIRONMENT != "production"
 
 DEFAULT_ORIGINS = [
@@ -1943,28 +1945,33 @@ async def send_message_notification(receiver_tid: int, sender_name: str, text: s
         f"<i>Откройте приложение, чтобы ответить</i>"
     )
     
-    web_app_base = os.getenv("WEB_APP_URL", "").strip().rstrip("/")
-    api_base = os.getenv("WEB_API_URL", "").strip()
-    reply_params = {"tab": "messages"}
-    if match_id:
-        reply_params["reply_match_id"] = str(match_id)
-    if api_base:
-        reply_params["api"] = api_base
-
-    if web_app_base:
-        separator = "&" if "?" in web_app_base else "?"
-        reply_url = f"{web_app_base}{separator}{urlencode(reply_params)}"
+    # Build reply button URL.
+    # Priority: TG_MINIAPP_LINK (t.me deep link) > WEB_APP_URL (direct HTTPS URL for WebApp button)
+    miniapp_link = TG_MINIAPP_LINK
+    if miniapp_link:
+        # Telegram Mini App deep link: opens the registered mini app and passes startapp param
+        startapp_param = f"reply_{match_id}" if match_id else "messages"
+        reply_url = f"{miniapp_link}?startapp={startapp_param}"
+        button = InlineKeyboardButton(text="✉️ Ответить", url=reply_url)
     else:
-        reply_url = ""
-    button = (
-        InlineKeyboardButton(text="✉️ Ответить", web_app=WebAppInfo(url=reply_url))
-        if reply_url
-        else InlineKeyboardButton(text="✉️ Ответить", url="https://t.me")
-    )
-    keyboard = InlineKeyboardMarkup(inline_keyboard=[[button]])
+        web_app_base = os.getenv("WEB_APP_URL", "").strip().rstrip("/")
+        api_base = os.getenv("WEB_API_URL", "").strip()
+        reply_params = {"tab": "messages"}
+        if match_id:
+            reply_params["reply_match_id"] = str(match_id)
+        if api_base:
+            reply_params["api"] = api_base
+        if web_app_base and web_app_base.startswith("https://"):
+            separator = "&" if "?" in web_app_base else "?"
+            reply_url = f"{web_app_base}{separator}{urlencode(reply_params)}"
+            button = InlineKeyboardButton(text="✉️ Ответить", web_app=WebAppInfo(url=reply_url))
+        else:
+            # No usable URL configured, omit the button
+            button = None
+    keyboard = InlineKeyboardMarkup(inline_keyboard=[[button]]) if button else None
     
     try:
-        await bot.send_message(receiver_tid, body, parse_mode="HTML", reply_markup=keyboard)
+        await bot.send_message(receiver_tid, body, parse_mode="HTML", reply_markup=keyboard or None)
     except Exception:
         return
 
