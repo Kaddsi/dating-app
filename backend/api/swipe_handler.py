@@ -17,7 +17,7 @@ from urllib.request import urlopen
 
 import asyncpg
 from aiogram import Bot
-from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, WebAppInfo
 from dotenv import load_dotenv
 from fastapi import Depends, FastAPI, Header, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -1943,13 +1943,25 @@ async def send_message_notification(receiver_tid: int, sender_name: str, text: s
         f"<i>Откройте приложение, чтобы ответить</i>"
     )
     
-    # Create deep link with match_id to open specific conversation
-    web_app_url = os.getenv("WEB_APP_URL", "https://t.me/premiumdatingbot/premium")
-    reply_url = f"https://t.me/premiumdatingbot/premium?startapp=reply_{match_id}" if match_id else web_app_url
-    
-    keyboard = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="✉️ Ответить", url=reply_url)]
-    ])
+    web_app_base = os.getenv("WEB_APP_URL", "").strip().rstrip("/")
+    api_base = os.getenv("WEB_API_URL", "").strip()
+    reply_params = {"tab": "messages"}
+    if match_id:
+        reply_params["reply_match_id"] = str(match_id)
+    if api_base:
+        reply_params["api"] = api_base
+
+    if web_app_base:
+        separator = "&" if "?" in web_app_base else "?"
+        reply_url = f"{web_app_base}{separator}{urlencode(reply_params)}"
+    else:
+        reply_url = ""
+    button = (
+        InlineKeyboardButton(text="✉️ Ответить", web_app=WebAppInfo(url=reply_url))
+        if reply_url
+        else InlineKeyboardButton(text="✉️ Ответить", url="https://t.me")
+    )
+    keyboard = InlineKeyboardMarkup(inline_keyboard=[[button]])
     
     try:
         await bot.send_message(receiver_tid, body, parse_mode="HTML", reply_markup=keyboard)

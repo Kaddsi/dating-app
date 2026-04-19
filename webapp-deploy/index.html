@@ -601,8 +601,12 @@
             padding-bottom: calc(12px + env(safe-area-inset-bottom));
         }
         
-        #gaming-screen, #profile-screen {
+        #gaming-screen {
             padding-bottom: calc(20px + env(safe-area-inset-bottom));
+        }
+
+        #profile-screen {
+            padding-bottom: calc(96px + env(safe-area-inset-bottom));
         }
 
         .thread-header {
@@ -1802,9 +1806,9 @@
             </div>
             
             <div class="profile-section">
-                <div class="section-title">⚙️ Настройки</div>
+                <div class="section-title">❤️ Реакции</div>
                 <div class="profile-item">
-                    <span class="profile-item-label" id="profile-label-notifications">Уведомления</span>
+                    <span class="profile-item-label" id="profile-label-notifications">Реакции</span>
                     <span class="profile-item-value" id="profile-notifications-value">Включены</span>
                 </div>
             </div>
@@ -2007,9 +2011,9 @@
                 matchButton: 'Send message',
                 profileMain: '📋 Main information',
                 profileInterests: '✨ Interests',
-                profileSettings: '⚙️ Settings',
+                profileSettings: '❤️ Reactions',
                 age: 'Age', country: 'Country', city: 'City', gender: 'Gender', premium: 'Premium',
-                notifications: 'Notifications',
+                notifications: 'Reactions',
                 genderMale: 'Male', genderFemale: 'Female',
                 premiumYes: 'Yes', premiumNo: 'No',
                 notificationsOn: 'Enabled',
@@ -2031,9 +2035,9 @@
                 matchButton: 'Написать сообщение',
                 profileMain: '📋 Основная информация',
                 profileInterests: '✨ Интересы',
-                profileSettings: '⚙️ Настройки',
+                profileSettings: '❤️ Реакции',
                 age: 'Возраст', country: 'Страна', city: 'Город', gender: 'Пол', premium: 'Premium',
-                notifications: 'Уведомления',
+                notifications: 'Реакции',
                 genderMale: 'Мужчина', genderFemale: 'Женщина',
                 premiumYes: 'Есть', premiumNo: 'Нет',
                 notificationsOn: 'Включены',
@@ -2055,9 +2059,9 @@
                 matchButton: 'Написати повідомлення',
                 profileMain: '📋 Основна інформація',
                 profileInterests: '✨ Інтереси',
-                profileSettings: '⚙️ Налаштування',
+                profileSettings: '❤️ Реакції',
                 age: 'Вік', country: 'Країна', city: 'Місто', gender: 'Стать', premium: 'Premium',
-                notifications: 'Сповіщення',
+                notifications: 'Реакції',
                 genderMale: 'Чоловік', genderFemale: 'Жінка',
                 premiumYes: 'Є', premiumNo: 'Немає',
                 notificationsOn: 'Увімкнено',
@@ -2079,9 +2083,9 @@
                 matchButton: 'Napsat zprávu',
                 profileMain: '📋 Základní informace',
                 profileInterests: '✨ Zájmy',
-                profileSettings: '⚙️ Nastavení',
+                profileSettings: '❤️ Reakce',
                 age: 'Věk', country: 'Země', city: 'Město', gender: 'Pohlaví', premium: 'Premium',
-                notifications: 'Notifikace',
+                notifications: 'Reakce',
                 genderMale: 'Muž', genderFemale: 'Žena',
                 premiumYes: 'Ano', premiumNo: 'Ne',
                 notificationsOn: 'Zapnuto',
@@ -2103,9 +2107,9 @@
                 matchButton: 'Napisz wiadomość',
                 profileMain: '📋 Podstawowe informacje',
                 profileInterests: '✨ Zainteresowania',
-                profileSettings: '⚙️ Ustawienia',
+                profileSettings: '❤️ Reakcje',
                 age: 'Wiek', country: 'Kraj', city: 'Miasto', gender: 'Płeć', premium: 'Premium',
-                notifications: 'Powiadomienia',
+                notifications: 'Reakcje',
                 genderMale: 'Mężczyzna', genderFemale: 'Kobieta',
                 premiumYes: 'Tak', premiumNo: 'Nie',
                 notificationsOn: 'Włączone',
@@ -3699,16 +3703,17 @@
                 loadMessagesInboxFromApi();
                 loadGamingRoomsFromApi();
                 
-                // Handle deep link from notification reply button
-                if (tg && tg.startParam && tg.startParam.startsWith('reply_')) {
-                    const matchIdStr = tg.startParam.replace('reply_', '');
-                    const matchId = parseInt(matchIdStr, 10);
-                    if (!isNaN(matchId) && matchId > 0) {
-                        setTimeout(() => {
-                            openMessageThread(matchId);
-                            showScreen('messages');
-                        }, 500);
-                    }
+                // Handle opening a specific conversation from Telegram reply button.
+                const replyMatchParam = query.get('reply_match_id') || '';
+                const startParamMatchId = (tg && tg.startParam && tg.startParam.startsWith('reply_'))
+                    ? tg.startParam.replace('reply_', '')
+                    : '';
+                const matchId = parseInt(replyMatchParam || startParamMatchId, 10);
+                if (!isNaN(matchId) && matchId > 0) {
+                    setTimeout(() => {
+                        openMessageThread(matchId);
+                        showScreen('messages');
+                    }, 500);
                 }
                 
                 setInterval(() => {
