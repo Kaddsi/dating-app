@@ -1017,6 +1017,20 @@
             flex-shrink: 0;
         }
 
+        @keyframes vpc-bounce {
+            0%, 100% { transform: scaleY(0.35); }
+            50%       { transform: scaleY(1); }
+        }
+        .vpc-playing .vpc-bars span {
+            animation: vpc-bounce 0.75s ease-in-out infinite;
+            opacity: 0.95 !important;
+            transform-origin: center bottom;
+        }
+        .vpc-playing .vpc-bars span:nth-child(2n)   { animation-delay: 0.15s; }
+        .vpc-playing .vpc-bars span:nth-child(3n)   { animation-delay: 0.3s; }
+        .vpc-playing .vpc-bars span:nth-child(4n)   { animation-delay: 0.45s; }
+        .vpc-playing .vpc-bars span:nth-child(5n)   { animation-delay: 0.6s; }
+
         .gift-badge {
             display: inline-flex;
             align-items: center;
@@ -2563,16 +2577,25 @@
                 const el = document.getElementById(id);
                 if (!el) return;
                 const src = el.getAttribute('data-src');
+                // Create audio object if not yet created (fallback if preload missed it)
                 if (!_vpcAudios[id]) {
-                    const audio = new Audio(src);
+                    const audio = new Audio();
+                    audio.preload = 'metadata';
                     _vpcAudios[id] = audio;
-                    // Show total duration as soon as metadata is known
-                    audio.onloadedmetadata = () => {
-                        const d = audio.duration || 0;
+                    const showDur = () => {
+                        const d = audio.duration;
+                        if (!d || !isFinite(d)) return;
                         const mm = Math.floor(d / 60), ss = Math.floor(d % 60);
                         const timeEl = el.querySelector('.vpc-time');
                         if (timeEl) timeEl.textContent = mm + ':' + String(ss).padStart(2, '0');
                     };
+                    audio.onloadedmetadata = showDur;
+                    audio.src = src;
+                    if (audio.readyState >= 1) showDur();
+                }
+                const audio = _vpcAudios[id];
+                // Attach playback handlers if not yet attached (covers preloaded audios too)
+                if (!audio.ontimeupdate) {
                     audio.ontimeupdate = () => {
                         const t = audio.currentTime, d = audio.duration || 0;
                         const mm = Math.floor(t / 60), ss = Math.floor(t % 60);
@@ -2587,7 +2610,6 @@
                         const pi = el.querySelector('.vpc-icon-play'), pa = el.querySelector('.vpc-icon-pause');
                         if (pi) pi.style.display = ''; if (pa) pa.style.display = 'none';
                         el.classList.remove('vpc-playing');
-                        // Reset time display to total duration after playback ends
                         const d = audio.duration || 0;
                         const mm = Math.floor(d / 60), ss = Math.floor(d % 60);
                         const timeEl = el.querySelector('.vpc-time');
@@ -2595,7 +2617,6 @@
                         el.querySelectorAll('.vpc-bars span').forEach(b => b.style.opacity = '0.28');
                     };
                 }
-                const audio = _vpcAudios[id];
                 if (audio.paused) {
                     Object.entries(_vpcAudios).forEach(([k, a]) => {
                         if (k !== id && !a.paused) {
@@ -2832,6 +2853,26 @@
                 thread.innerHTML = items.map((msg, idx) => buildBubble(msg, currentId, idx)).join('');
                 if (ti) thread.appendChild(ti);
                 thread.scrollTop = thread.scrollHeight;
+                // Pre-load voice durations so they show without clicking play
+                thread.querySelectorAll('.vpc-wrap').forEach(wrap => {
+                    const vId = wrap.id;
+                    if (!vId || _vpcAudios[vId]) return;
+                    const rawSrc = wrap.getAttribute('data-src');
+                    if (!rawSrc) return;
+                    const audio = new Audio();
+                    audio.preload = 'metadata';
+                    _vpcAudios[vId] = audio;
+                    const showDuration = () => {
+                        const d = audio.duration;
+                        if (!d || !isFinite(d)) return;
+                        const mm = Math.floor(d / 60), ss = Math.floor(d % 60);
+                        const timeEl = wrap.querySelector('.vpc-time');
+                        if (timeEl) timeEl.textContent = mm + ':' + String(ss).padStart(2, '0');
+                    };
+                    audio.onloadedmetadata = showDuration;
+                    audio.src = rawSrc;
+                    if (audio.readyState >= 1) showDuration();
+                });
             }
 
             async function openMessageThread(matchId, userName, isOnline) {
