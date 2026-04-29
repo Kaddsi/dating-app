@@ -2457,13 +2457,25 @@
             const activeUsers = (Array.isArray(window.filteredUsers) && window.filteredUsers.length)
                 ? window.filteredUsers
                 : users;
-            const user = activeUsers[currentUserIndex];
+            const user = activeUsers[currentUserIndex] || users[currentUserIndex] || null;
             const photoArea = document.getElementById('photo-area-main');
             const prevBtn = document.getElementById('photo-prev');
             const nextBtn = document.getElementById('photo-next');
             const indicators = document.querySelectorAll('.photo-indicator');
+            const indicatorsWrap = document.querySelector('.photo-indicators');
             
-            if (!photoArea || !user) return;
+            if (!photoArea) return;
+            if (!user) {
+                applyPhotoToElement(photoArea, null);
+                if (indicatorsWrap) indicatorsWrap.style.display = 'none';
+                indicators.forEach((ind) => {
+                    ind.style.display = 'none';
+                    ind.classList.remove('active');
+                });
+                if (prevBtn) prevBtn.style.display = 'none';
+                if (nextBtn) nextBtn.style.display = 'none';
+                return;
+            }
             
             const photosArray = Array.isArray(user.photos_urls) ? user.photos_urls.filter(Boolean) : [];
             const primaryPhoto = user.primary_photo_url;
@@ -2489,6 +2501,8 @@
             // Отображаем текущее фото
             const currentPhoto = allPhotos[currentPhotoIndex] || null;
             applyPhotoToElement(photoArea, currentPhoto);
+
+            if (indicatorsWrap) indicatorsWrap.style.display = allPhotos.length > 1 ? 'flex' : 'none';
             
             // Обновляем индикаторы
             indicators.forEach((ind, idx) => {
@@ -2497,6 +2511,7 @@
                     ind.classList.toggle('active', idx === currentPhotoIndex);
                 } else {
                     ind.style.display = 'none';
+                    ind.classList.remove('active');
                 }
             });
             
