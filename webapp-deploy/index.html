@@ -377,9 +377,10 @@
             backdrop-filter: blur(18px);
             border-top: 1px solid rgba(205, 132, 167, 0.26);
             box-shadow: 0 -14px 34px rgba(0, 0, 0, 0.34);
-            padding: 12px 20px;
+            padding: 10px 10px;
             display: flex;
             justify-content: space-around;
+            gap: 2px;
             z-index: 100;
             overflow: hidden;
         }
@@ -395,10 +396,11 @@
             align-items: center;
             gap: 4px;
             cursor: pointer;
-            padding: 8px;
+            padding: 8px 4px;
             border-radius: 12px;
             transition: all 0.3s;
             color: rgba(226, 186, 204, 0.74);
+            min-width: 0;
         }
         
         .nav-btn:hover {
@@ -449,6 +451,7 @@
             display: block;
             margin-top: 4px;
             letter-spacing: 0.3px;
+            white-space: nowrap;
         }
         
         /* Экран мэтчей */
@@ -1567,11 +1570,11 @@
 
         .bottom-nav {
             gap: 4px;
-            padding: 10px 14px calc(10px + env(safe-area-inset-bottom));
+            padding: 10px 6px calc(10px + env(safe-area-inset-bottom));
         }
 
         .nav-btn span {
-            font-size: 10px;
+            font-size: 9px;
         }
 
         .community-hero {
@@ -2414,6 +2417,11 @@
         
         // Переключить фото влево
         function prevPhoto() {
+            const activeUsers = (Array.isArray(window.filteredUsers) && window.filteredUsers.length)
+                ? window.filteredUsers
+                : users;
+            const user = activeUsers[currentUserIndex];
+            if (!user) return;
             if (currentPhotoIndex > 0) {
                 currentPhotoIndex--;
                 updatePhotoDisplay();
@@ -2422,8 +2430,22 @@
         
         // Переключить фото вправо
         function nextPhoto() {
-            const user = users[currentUserIndex];
-            const photosCount = (Array.isArray(user.photos_urls) && user.photos_urls.length) || 0;
+            const activeUsers = (Array.isArray(window.filteredUsers) && window.filteredUsers.length)
+                ? window.filteredUsers
+                : users;
+            const user = activeUsers[currentUserIndex];
+            if (!user) return;
+            const seen = new Set();
+            const allPhotos = [];
+            const addPhoto = (url) => {
+                const v = String(url || '').trim();
+                if (!v || seen.has(v)) return;
+                seen.add(v);
+                allPhotos.push(v);
+            };
+            addPhoto(user.primary_photo_url);
+            if (Array.isArray(user.photos_urls)) user.photos_urls.forEach(addPhoto);
+            const photosCount = allPhotos.slice(0, 4).length;
             if (currentPhotoIndex < photosCount - 1) {
                 currentPhotoIndex++;
                 updatePhotoDisplay();
@@ -2432,26 +2454,37 @@
         
         // Обновить отображение фото
         function updatePhotoDisplay() {
-            const user = users[currentUserIndex];
+            const activeUsers = (Array.isArray(window.filteredUsers) && window.filteredUsers.length)
+                ? window.filteredUsers
+                : users;
+            const user = activeUsers[currentUserIndex];
             const photoArea = document.getElementById('photo-area-main');
             const prevBtn = document.getElementById('photo-prev');
             const nextBtn = document.getElementById('photo-next');
             const indicators = document.querySelectorAll('.photo-indicator');
             
-            if (!photoArea) return;
+            if (!photoArea || !user) return;
             
             const photosArray = Array.isArray(user.photos_urls) ? user.photos_urls.filter(Boolean) : [];
             const primaryPhoto = user.primary_photo_url;
+            const seen = new Set();
             
             // Формируем полный список фото с основной впереди
             let allPhotos = [];
-            if (primaryPhoto) allPhotos.push(primaryPhoto);
+            if (primaryPhoto && !seen.has(primaryPhoto)) {
+                seen.add(primaryPhoto);
+                allPhotos.push(primaryPhoto);
+            }
             photosArray.forEach(p => {
-                if (p !== primaryPhoto) allPhotos.push(p);
+                if (!seen.has(p)) {
+                    seen.add(p);
+                    allPhotos.push(p);
+                }
             });
             
             // Ограничиваем 4 фото
             allPhotos = allPhotos.slice(0, 4);
+            if (currentPhotoIndex >= allPhotos.length) currentPhotoIndex = 0;
             
             // Отображаем текущее фото
             const currentPhoto = allPhotos[currentPhotoIndex] || null;
@@ -3745,6 +3778,7 @@
 
             window.updateUserCard = function() {
                 filteredUsers = users.filter(matchFilter);
+                window.filteredUsers = filteredUsers;
                 const resultLine = document.getElementById('filters-result-line');
                 if (resultLine) resultLine.textContent = `Найдено анкет: ${filteredUsers.length}`;
 
@@ -3780,35 +3814,8 @@
                 if (interests) {
                     interests.innerHTML = (user.interests || []).map(i => `<span class="interest-tag">${i}</span>`).join('');
                 }
-                const photoArea = document.querySelector('.photo-area');
-                applyPhotoToElement(photoArea, (user.photos_urls || [])[0] || user.primary_photo_url);
-
-                const indicators = document.querySelectorAll('.photo-indicator');
-                const prevBtn = document.getElementById('photo-prev');
-                const nextBtn = document.getElementById('photo-next');
-                const seen = new Set();
-                const photos = [];
-                const addPhoto = (url) => {
-                    const v = String(url || '').trim();
-                    if (!v || seen.has(v)) return;
-                    seen.add(v);
-                    photos.push(v);
-                };
-                addPhoto(user.primary_photo_url);
-                if (Array.isArray(user.photos_urls)) user.photos_urls.forEach(addPhoto);
-
-                indicators.forEach((ind, idx) => {
-                    if (idx < photos.length) {
-                        ind.style.display = '';
-                        ind.classList.toggle('active', idx === 0);
-                    } else {
-                        ind.style.display = 'none';
-                        ind.classList.remove('active');
-                    }
-                });
-
-                if (prevBtn) prevBtn.style.display = 'none';
-                if (nextBtn) nextBtn.style.display = 'none';
+                currentPhotoIndex = 0;
+                updatePhotoDisplay();
             };
 
             window.swipe = function(type) {
