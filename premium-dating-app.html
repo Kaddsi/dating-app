@@ -2040,7 +2040,7 @@
             </div>
             <div class="nav-btn" onclick="showScreen('likes')">
                 <svg fill="currentColor" viewBox="0 0 20 20">
-                    <path d="M9.172 2.172a4 4 0 015.656 0L10 4.5l4.828-4.828a4 4 0 11-5.656 5.656L10 4.5l-4.828 4.828a4 4 0 105.656 5.656L10 15.657l-4.828 4.829a4 4 0 11-5.656-5.656L10 15.657l4.828-4.829a4 4 0 005.656-5.656z"/>
+                    <path fill-rule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clip-rule="evenodd"/>
                 </svg>
                 <span>Лайки</span>
                 <div class="badge" id="likes-badge" style="display: none;">0</div>
@@ -2155,6 +2155,7 @@
                 hint: 'Swipe right to like or press ❤️',
                 navDiscovery: 'Discover',
                 navMatches: 'Matches',
+                navLikes: 'Likes',
                 navMessages: 'Messages',
                 navGaming: 'Gamers',
                 navProfile: 'Profile',
@@ -2181,7 +2182,7 @@
             ru: {
                 title: 'Premium Dating - Приложение для знакомств',
                 hint: 'Свайпните вправо для лайка или нажмите ❤️',
-                navDiscovery: 'Поиск', navMatches: 'Мэтчи', navMessages: 'Сообщения', navGaming: 'Геймеры', navProfile: 'Профиль',
+                navDiscovery: 'Поиск', navMatches: 'Мэтчи', navLikes: 'Лайки', navMessages: 'Сообщения', navGaming: 'Геймеры', navProfile: 'Профиль',
                 gamingTitle: 'Комната геймеров',
                 gamingSubtitle: 'Ищите тиммейтов для катки, собирайте пати и общайтесь без токсика.',
                 gamingWelcome: 'Будьте уважительны: без мата, без оскорблений. Напишите ваш ранг, роль или кого ищете в пати.',
@@ -2205,7 +2206,7 @@
             uk: {
                 title: 'Premium Dating - Додаток для знайомств',
                 hint: 'Свайпніть вправо для лайка або натисніть ❤️',
-                navDiscovery: 'Пошук', navMatches: 'Метчі', navMessages: 'Повідомлення', navGaming: 'Геймери', navProfile: 'Профіль',
+                navDiscovery: 'Пошук', navMatches: 'Метчі', navLikes: 'Лайки', navMessages: 'Повідомлення', navGaming: 'Геймери', navProfile: 'Профіль',
                 gamingTitle: 'Кімната геймерів',
                 gamingSubtitle: 'Шукайте тіммейтів, збирайте паті та спілкуйтеся без токсичності.',
                 gamingWelcome: 'Поважайте одне одного: без лайки та образ. Напишіть свій ранг, роль або кого шукаєте в паті.',
@@ -2229,7 +2230,7 @@
             cs: {
                 title: 'Premium Dating - Seznamovací aplikace',
                 hint: 'Táhni doprava pro like nebo stiskni ❤️',
-                navDiscovery: 'Objevování', navMatches: 'Shody', navMessages: 'Zprávy', navGaming: 'Hráči', navProfile: 'Profil',
+                navDiscovery: 'Objevování', navMatches: 'Shody', navLikes: 'Lajky', navMessages: 'Zprávy', navGaming: 'Hráči', navProfile: 'Profil',
                 gamingTitle: 'Herní místnost',
                 gamingSubtitle: 'Najdi spoluhráče, slož partu a komunikuj bez toxicity.',
                 gamingWelcome: 'Komunikujte s respektem: bez nadávek a urážek. Napiš rank, roli nebo koho hledáš do party.',
@@ -2253,7 +2254,7 @@
             pl: {
                 title: 'Premium Dating - Aplikacja randkowa',
                 hint: 'Przesuń w prawo, aby polubić lub naciśnij ❤️',
-                navDiscovery: 'Odkrywaj', navMatches: 'Matche', navMessages: 'Wiadomości', navGaming: 'Gracze', navProfile: 'Profil',
+                navDiscovery: 'Odkrywaj', navMatches: 'Matche', navLikes: 'Lajki', navMessages: 'Wiadomości', navGaming: 'Gracze', navProfile: 'Profil',
                 gamingTitle: 'Pokój graczy',
                 gamingSubtitle: 'Znajdź teammate’ów, zbierz party i rozmawiaj bez toksyczności.',
                 gamingWelcome: 'Szanuj innych: bez przekleństw i wyzwisk. Napisz swój rank, rolę albo kogo szukasz do party.',
@@ -2314,12 +2315,13 @@
             if (hint) hint.textContent = T.hint;
 
             const nav = document.querySelectorAll('.bottom-nav .nav-btn span');
-            if (nav.length >= 5) {
+            if (nav.length >= 6) {
                 nav[0].textContent = T.navDiscovery;
                 nav[1].textContent = T.navMatches;
-                nav[2].textContent = T.navMessages;
-                nav[3].textContent = T.navGaming;
-                nav[4].textContent = T.navProfile;
+                nav[2].textContent = T.navLikes || 'Likes';
+                nav[3].textContent = T.navMessages;
+                nav[4].textContent = T.navGaming;
+                nav[5].textContent = T.navProfile;
             }
 
             const gamingTitle = document.getElementById('gaming-title');
