@@ -138,7 +138,7 @@
         }
         
         .photo-indicators {
-            display: flex;
+            display: none;
             gap: 4px;
             margin-bottom: 12px;
         }
@@ -2415,6 +2415,45 @@
             }
         }
         
+        function normalizePhotoValue(value) {
+            if (!value) return '';
+            if (typeof value === 'string') {
+                const raw = value.trim();
+                if (!raw) return '';
+                if (raw.startsWith('{') && raw.endsWith('}')) {
+                    try {
+                        const parsed = JSON.parse(raw);
+                        return normalizePhotoValue(parsed);
+                    } catch (e) {
+                        return '';
+                    }
+                }
+                return raw;
+            }
+            if (typeof value === 'object') {
+                const raw = value.url || value.photo_url || value.file_url || value.src || value.path || '';
+                return normalizePhotoValue(raw);
+            }
+            return '';
+        }
+
+        function buildUserPhotos(user) {
+            const seen = new Set();
+            const list = [];
+            const push = (value) => {
+                const v = normalizePhotoValue(value);
+                if (!v) return;
+                const valid = v.startsWith('http://') || v.startsWith('https://') || v.startsWith('data:image/') || v.startsWith('/');
+                if (!valid || seen.has(v)) return;
+                seen.add(v);
+                list.push(v);
+            };
+            if (!user) return list;
+            push(user.primary_photo_url);
+            if (Array.isArray(user.photos_urls)) user.photos_urls.forEach(push);
+            return list.slice(0, 4);
+        }
+
         // Переключить фото влево
         function prevPhoto() {
             const activeUsers = (Array.isArray(window.filteredUsers) && window.filteredUsers.length)
@@ -2435,28 +2474,7 @@
                 : users;
             const user = activeUsers[currentUserIndex];
             if (!user) return;
-            const seen = new Set();
-            const allPhotos = [];
-            const normalizePhotoUrl = (value) => {
-                if (!value) return '';
-                if (typeof value === 'string') return value.trim();
-                if (typeof value === 'object') {
-                    const raw = value.url || value.photo_url || value.file_url || value.src || '';
-                    return typeof raw === 'string' ? raw.trim() : '';
-                }
-                return '';
-            };
-            const addPhoto = (url) => {
-                const v = normalizePhotoUrl(url);
-                const valid = v.startsWith('http://') || v.startsWith('https://') || v.startsWith('data:image/') || v.startsWith('/');
-                if (!valid) return;
-                if (!v || seen.has(v)) return;
-                seen.add(v);
-                allPhotos.push(v);
-            };
-            addPhoto(user.primary_photo_url);
-            if (Array.isArray(user.photos_urls)) user.photos_urls.forEach(addPhoto);
-            const photosCount = allPhotos.slice(0, 4).length;
+            const photosCount = buildUserPhotos(user).length;
             if (currentPhotoIndex < photosCount - 1) {
                 currentPhotoIndex++;
                 updatePhotoDisplay();
@@ -2488,33 +2506,9 @@
                 return;
             }
             
-            const photosArray = Array.isArray(user.photos_urls) ? user.photos_urls.filter(Boolean) : [];
-            const primaryPhoto = user.primary_photo_url;
-            const seen = new Set();
-            const normalizePhotoUrl = (value) => {
-                if (!value) return '';
-                if (typeof value === 'string') return value.trim();
-                if (typeof value === 'object') {
-                    const raw = value.url || value.photo_url || value.file_url || value.src || '';
-                    return typeof raw === 'string' ? raw.trim() : '';
-                }
-                return '';
-            };
-            const pushPhoto = (value) => {
-                const v = normalizePhotoUrl(value);
-                const valid = v.startsWith('http://') || v.startsWith('https://') || v.startsWith('data:image/') || v.startsWith('/');
-                if (!valid || seen.has(v)) return;
-                seen.add(v);
-                allPhotos.push(v);
-            };
-            
-            // Формируем полный список фото с основной впереди
-            let allPhotos = [];
-            pushPhoto(primaryPhoto);
-            photosArray.forEach(pushPhoto);
+            const allPhotos = buildUserPhotos(user);
             
             // Ограничиваем 4 фото
-            allPhotos = allPhotos.slice(0, 4);
             if (currentPhotoIndex >= allPhotos.length) currentPhotoIndex = 0;
             
             // Отображаем текущее фото
@@ -3848,8 +3842,15 @@
                 if (interests) {
                     interests.innerHTML = (user.interests || []).map(i => `<span class="interest-tag">${i}</span>`).join('');
                 }
+                const photoArea = document.getElementById('photo-area-main');
+                const initialPhotos = buildUserPhotos(user);
+                applyPhotoToElement(photoArea, initialPhotos[0] || null);
                 currentPhotoIndex = 0;
-                updatePhotoDisplay();
+                try {
+                    updatePhotoDisplay();
+                } catch (e) {
+                    // fallback photo already applied above
+                }
             };
 
             window.swipe = function(type) {
