@@ -422,6 +422,27 @@
             height: 24px;
         }
         
+        .nav-btn {
+            position: relative;
+        }
+        
+        .nav-btn .badge {
+            position: absolute;
+            top: -2px;
+            right: -4px;
+            background: #ff4d7a;
+            color: #fff;
+            font-size: 10px;
+            font-weight: 800;
+            min-width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 8px rgba(255, 77, 122, 0.5);
+        }
+        
         .nav-btn span {
             font-size: 11px;
             font-weight: 600;
@@ -432,6 +453,7 @@
         
         /* Экран мэтчей */
         #matches-screen,
+        #likes-screen,
         #messages-screen {
             padding-top: 22px;
         }
@@ -507,11 +529,19 @@
             margin-bottom: 4px;
             text-shadow: 0 1px 4px rgba(0,0,0,0.6);
         }
+        
+        .like-card.blurred .like-card-name {
+            display: none;
+        }
 
         .like-card-meta {
             color: rgba(255, 218, 240, 0.82);
             font-size: 11px;
             margin-bottom: 10px;
+        }
+        
+        .like-card.blurred .like-card-meta {
+            display: none;
         }
 
         .like-card-action {
@@ -1796,7 +1826,8 @@
         </div>
         
         <!-- Экран мэтчей -->
-        <div id="matches-screen" class="screen">
+        <!-- Экран лайков -->
+        <div id="likes-screen" class="screen">
             <div id="likes-section" class="likes-section">
                 <h3 id="likes-section-title" class="likes-section-title">Кому понравился ваш профиль</h3>
                 <p id="likes-section-note" class="likes-section-note">Без Premium фото скрыто, но вы всё равно можете лайкнуть в ответ.</p>
@@ -1804,7 +1835,10 @@
                     <div class="muted-line">Загрузка лайков...</div>
                 </div>
             </div>
-            <div class="matches-grid">
+        </div>
+
+        <!-- Экран мэтчей -->
+
                 <div class="muted-line">Загрузка мэтчей...</div>
             </div>
         </div>
@@ -2003,6 +2037,13 @@
                     <path fill-rule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clip-rule="evenodd"/>
                 </svg>
                 <span>Мэтчи</span>
+            </div>
+            <div class="nav-btn" onclick="showScreen('likes')">
+                <svg fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M9.172 2.172a4 4 0 015.656 0L10 4.5l4.828-4.828a4 4 0 11-5.656 5.656L10 4.5l-4.828 4.828a4 4 0 105.656 5.656L10 15.657l-4.828 4.829a4 4 0 11-5.656-5.656L10 15.657l4.828-4.829a4 4 0 005.656-5.656z"/>
+                </svg>
+                <span>Лайки</span>
+                <div class="badge" id="likes-badge" style="display: none;">0</div>
             </div>
             <div class="nav-btn" onclick="showScreen('messages')">
                 <svg fill="currentColor" viewBox="0 0 20 20">
@@ -2322,7 +2363,7 @@
         }
         
         // Показать экран
-        function showScreen(screenName) {
+        async function showScreen(screenName) {
             // Скрыть все экраны
             document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
             // Показать нужный
@@ -2330,12 +2371,21 @@
             
             // Обновить навигацию
             document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
-            event.currentTarget.classList.add('active');
+            if (event && event.currentTarget) event.currentTarget.classList.add('active');
             
             // Скрыть хедер на всех экранах кроме Discovery
             const header = document.querySelector('.header');
             if (header) {
                 header.style.display = (screenName === 'discovery') ? '' : 'none';
+            }
+            
+            // Загрузить данные для конкретного экрана
+            if (screenName === 'likes') {
+                await loadLikesFromApi();
+            } else if (screenName === 'matches') {
+                await loadMatchesFromApi();
+            } else if (screenName === 'messages') {
+                await loadMessagesInboxFromApi();
             }
         }
         
@@ -2949,12 +2999,24 @@
                     const data = await apiRequest('/api/likes');
                     incomingLikes = Array.isArray(data && data.items) ? data.items : [];
                     const isPremium = Boolean(profileData.premium);
+                    
+                    // Обновить бейдж
+                    const badge = document.getElementById('likes-badge');
+                    if (badge) {
+                        if (incomingLikes.length > 0) {
+                            badge.textContent = incomingLikes.length;
+                            badge.style.display = 'flex';
+                        } else {
+                            badge.style.display = 'none';
+                        }
+                    }
+                    
                     const title = document.getElementById('likes-section-title');
                     const note = document.getElementById('likes-section-note');
                     if (title) title.textContent = T.likesTitle || 'Кому понравился ваш профиль';
                     if (note) note.textContent = isPremium
                         ? (T.likesPremiumNote || 'У вас Premium: фото и имя видны полностью.')
-                        : (T.likesBlurNote || 'Без Premium фото скрыто, но вы всё равно можете лайкнуть в ответ.');
+                        : (T.likesBlurNote || 'Без Premium фото скрыто, имя и город тоже, но вы всё равно можете лайкнуть в ответ.');
 
                     if (!incomingLikes.length) {
                         section.style.display = 'none';
@@ -2973,13 +3035,14 @@
                             ? (T.likesSuperlike || 'Поставил суперлайк')
                             : (T.likesLike || 'Поставил лайк');
                         const city = item.city ? ` • ${item.city}` : '';
+                        const displayMeta = isBlurred ? '' : `${metaText}${city}`;
                         return `
                             <div class="like-card ${isBlurred ? 'blurred' : ''}">
                                 <div class="like-card-photo" ${photoStyle}></div>
                                 ${isBlurred ? `<div class="like-card-premium-mask">${T.likesPremiumMask || 'Фото скрыто'}</div>` : ''}
                                 <div class="like-card-overlay">
                                     <div class="like-card-name">${displayName}</div>
-                                    <div class="like-card-meta">${metaText}${city}</div>
+                                    <div class="like-card-meta">${displayMeta}</div>
                                     <button class="like-card-action" type="button" data-like-user-id="${item.user_id}" data-like-user-name="${String(item.first_name || 'User').replace(/"/g, '&quot;')}">${T.likeBackButton || '❤️ Лайк в ответ'}</button>
                                 </div>
                             </div>
@@ -2995,6 +3058,9 @@
                     });
                 } catch (e) {
                     section.style.display = 'none';
+                    // Скрыть бейдж при ошибке
+                    const badge = document.getElementById('likes-badge');
+                    if (badge) badge.style.display = 'none';
                 }
             }
 
@@ -3986,7 +4052,11 @@
                         openMessageThread(matchId);
                         showScreen('messages');
                     }, 500);
-                } else if (initialTab === 'matches' || initialTab === 'likes') {
+                } else if (initialTab === 'likes') {
+                    setTimeout(() => {
+                        showScreen('likes');
+                    }, 250);
+                } else if (initialTab === 'matches') {
                     setTimeout(() => {
                         showScreen('matches');
                     }, 250);
