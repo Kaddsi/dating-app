@@ -258,6 +258,19 @@ class MatchListResponse(BaseModel):
     items: list[MatchItem]
 
 
+class LikeItem(BaseModel):
+    user_id: int
+    first_name: str
+    city: Optional[str] = None
+    primary_photo_url: Optional[str] = None
+    swipe_type: str = "like"
+    created_at: Optional[str] = None
+
+
+class LikeListResponse(BaseModel):
+    items: list[LikeItem]
+
+
 class ProfileUpdateRequest(BaseModel):
     first_name: Optional[str] = None
     age: Optional[int] = None
@@ -1480,6 +1493,87 @@ async def get_matches(
     return MatchListResponse(items=items)
 
 
+@app.get("/api/likes", response_model=LikeListResponse)
+async def get_incoming_likes(
+    current_user: dict = Depends(get_current_user),
+    pool: asyncpg.Pool = Depends(get_db_pool),
+):
+    """Return users who liked the current user but are not matched yet."""
+    if RUN_WITHOUT_DB or pool is None:
+        user_id = int(current_user['id'])
+        items: list[LikeItem] = []
+        for (from_user, to_user), swipe_type in mock_swipes.items():
+            if int(to_user) != user_id or swipe_type not in {'like', 'superlike'}:
+                continue
+            if mock_swipes.get((user_id, int(from_user))) in {'like', 'superlike'}:
+                continue
+            match_key = _mock_match_key(user_id, int(from_user))
+            if mock_matches.get(match_key, {}).get('is_active'):
+                continue
+            profile = mock_profiles.get(int(from_user), {})
+            items.append(
+                LikeItem(
+                    user_id=int(from_user),
+                    first_name=profile.get('first_name') or f'User{from_user}',
+                    city=profile.get('city'),
+                    primary_photo_url=profile.get('primary_photo_url') or ((profile.get('photos_urls') or [None])[0]),
+                    swipe_type=str(swipe_type),
+                    created_at=None,
+                )
+            )
+        return LikeListResponse(items=items)
+
+    async with pool.acquire() as conn:
+        rows = await conn.fetch(
+            """
+            SELECT
+                p.id AS user_id,
+                p.first_name,
+                p.city,
+                p.primary_photo_url,
+                s.swipe_type,
+                s.created_at
+            FROM swipes s
+            JOIN users p ON p.id = s.from_user_id
+            WHERE s.to_user_id = $1
+              AND s.swipe_type IN ('like', 'superlike')
+              AND p.is_active = TRUE
+              AND p.is_blocked = FALSE
+              AND NOT EXISTS (
+                  SELECT 1 FROM swipes own
+                  WHERE own.from_user_id = $1
+                    AND own.to_user_id = s.from_user_id
+                    AND own.swipe_type IN ('like', 'superlike')
+              )
+              AND NOT EXISTS (
+                  SELECT 1 FROM matches m
+                  WHERE m.is_active = TRUE
+                    AND ((m.user1_id = $1 AND m.user2_id = s.from_user_id)
+                      OR (m.user2_id = $1 AND m.user1_id = s.from_user_id))
+              )
+              AND NOT EXISTS (
+                  SELECT 1 FROM user_blocks b
+                  WHERE (b.blocker_id = $1 AND b.blocked_id = s.from_user_id)
+                     OR (b.blocker_id = s.from_user_id AND b.blocked_id = $1)
+              )
+            ORDER BY s.created_at DESC
+            """,
+            current_user['id'],
+        )
+
+    return LikeListResponse(items=[
+        LikeItem(
+            user_id=int(r['user_id']),
+            first_name=r['first_name'] or 'User',
+            city=r['city'],
+            primary_photo_url=r['primary_photo_url'],
+            swipe_type=r['swipe_type'] or 'like',
+            created_at=str(r['created_at']) if r['created_at'] else None,
+        )
+        for r in rows
+    ])
+
+
 @app.get("/api/matches/{match_id}/messages", response_model=MessageListResponse)
 async def get_match_messages(
     match_id: int,
@@ -1927,9 +2021,18 @@ async def send_like_notification(receiver_tid: int, actor_name: str, swipe_type:
         f"Откройте приложение, чтобы узнать больше"
     )
     
-    keyboard = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="🎯 Посмотреть профиль", url="https://t.me/premiumdatingbot/premium")]
-    ])
+    keyboard = None
+    web_app_base = os.getenv("WEB_APP_URL", "").strip().rstrip("/")
+    api_base = os.getenv("WEB_API_URL", "").strip()
+    if web_app_base and web_app_base.startswith("https://"):
+        params = {"tab": "likes"}
+        if api_base:
+            params["api"] = api_base
+        separator = "&" if "?" in web_app_base else "?"
+        open_url = f"{web_app_base}{separator}{urlencode(params)}"
+        keyboard = InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text="🎯 Посмотреть профиль", web_app=WebAppInfo(url=open_url))]
+        ])
     
     try:
         await bot.send_message(receiver_tid, text, parse_mode="HTML", reply_markup=keyboard)
@@ -1942,10 +2045,19 @@ async def send_match_notification(user1_tid, user2_tid, user1_name, user2_name, 
     if not bot:
         return
 
-    keyboard = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="💬 Открыть чат", url="https://t.me/premiumdatingbot/premium")],
-        [InlineKeyboardButton(text="👤 Посмотреть профиль", url="https://t.me/premiumdatingbot/premium")]
-    ])
+    keyboard = None
+    web_app_base = os.getenv("WEB_APP_URL", "").strip().rstrip("/")
+    api_base = os.getenv("WEB_API_URL", "").strip()
+    if web_app_base and web_app_base.startswith("https://"):
+        params = {"tab": "matches"}
+        if api_base:
+            params["api"] = api_base
+        separator = "&" if "?" in web_app_base else "?"
+        open_url = f"{web_app_base}{separator}{urlencode(params)}"
+        keyboard = InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text="💬 Открыть чат", web_app=WebAppInfo(url=open_url))],
+            [InlineKeyboardButton(text="👤 Посмотреть профиль", web_app=WebAppInfo(url=open_url))]
+        ])
     
     try:
         if send_to_user1:

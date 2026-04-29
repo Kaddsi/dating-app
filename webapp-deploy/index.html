@@ -443,6 +443,100 @@
             padding-bottom: 80px;
             margin-top: 8px;
         }
+
+        .likes-section {
+            margin-bottom: 18px;
+        }
+
+        .likes-section-title {
+            color: #ffe7f2;
+            font-size: 18px;
+            font-weight: 800;
+            margin: 0 0 10px;
+        }
+
+        .likes-section-note {
+            color: rgba(255, 218, 240, 0.72);
+            font-size: 12px;
+            margin: 0 0 12px;
+        }
+
+        .likes-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 14px;
+        }
+
+        .like-card {
+            position: relative;
+            overflow: hidden;
+            border-radius: 20px;
+            aspect-ratio: 2 / 3;
+            border: 1px solid rgba(205, 132, 167, 0.22);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+            background: #2c2130;
+        }
+
+        .like-card-photo {
+            position: absolute;
+            inset: 0;
+            background-size: cover;
+            background-position: center top;
+            background-color: #2c2130;
+        }
+
+        .like-card.blurred .like-card-photo {
+            filter: blur(18px) brightness(0.78);
+            transform: scale(1.08);
+        }
+
+        .like-card-overlay {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            padding: 12px;
+            background: linear-gradient(to top, rgba(10, 6, 14, 0.92) 0%, rgba(10, 6, 14, 0.4) 60%, transparent 100%);
+        }
+
+        .like-card-name {
+            color: #fff;
+            font-weight: 800;
+            font-size: 14px;
+            margin-bottom: 4px;
+            text-shadow: 0 1px 4px rgba(0,0,0,0.6);
+        }
+
+        .like-card-meta {
+            color: rgba(255, 218, 240, 0.82);
+            font-size: 11px;
+            margin-bottom: 10px;
+        }
+
+        .like-card-action {
+            border: 0;
+            border-radius: 12px;
+            min-height: 36px;
+            background: linear-gradient(135deg, #ff6da8, #f0478d);
+            color: #fff;
+            font-weight: 800;
+            cursor: pointer;
+        }
+
+        .like-card-premium-mask {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            border-radius: 999px;
+            padding: 6px 10px;
+            background: rgba(17, 11, 20, 0.82);
+            border: 1px solid rgba(205, 132, 167, 0.32);
+            color: #ffe7f2;
+            font-size: 11px;
+            font-weight: 800;
+            backdrop-filter: blur(10px);
+        }
         
         .match-card {
             position: relative;
@@ -1703,6 +1797,13 @@
         
         <!-- Экран мэтчей -->
         <div id="matches-screen" class="screen">
+            <div id="likes-section" class="likes-section">
+                <h3 id="likes-section-title" class="likes-section-title">Кому понравился ваш профиль</h3>
+                <p id="likes-section-note" class="likes-section-note">Без Premium фото скрыто, но вы всё равно можете лайкнуть в ответ.</p>
+                <div id="likes-grid" class="likes-grid">
+                    <div class="muted-line">Загрузка лайков...</div>
+                </div>
+            </div>
             <div class="matches-grid">
                 <div class="muted-line">Загрузка мэтчей...</div>
             </div>
@@ -2448,6 +2549,7 @@
 
             let lastMatchedTargetUserId = null;
             let inboxMatches = [];
+            let incomingLikes = [];
             let activeThreadMatchId = null;
             let activeThreadUserName = '';
             let activeGamingRoom = '';
@@ -2810,6 +2912,89 @@
                     });
                 } catch (e) {
                     if (grid) grid.innerHTML = '<div class="muted-line">Не удалось загрузить мэтчи</div>';
+                }
+            }
+
+            async function likeBackFromCard(userId, userName) {
+                if (!initData || !userId) return;
+                try {
+                    const res = await apiRequest('/api/swipe', {
+                        method: 'POST',
+                        body: JSON.stringify({ target_user_id: Number(userId), swipe_type: 'like' }),
+                    });
+                    if (res && res.is_match) {
+                        lastMatchedTargetUserId = Number(userId);
+                        showMatchModal(userName || 'User');
+                    }
+                    await Promise.all([
+                        loadLikesFromApi(),
+                        loadMatchesFromApi(),
+                        loadMessagesInboxFromApi(),
+                        refreshNotificationSummary(),
+                    ]);
+                } catch (e) {
+                    alert('Не удалось поставить лайк в ответ');
+                }
+            }
+
+            async function loadLikesFromApi() {
+                const section = document.getElementById('likes-section');
+                const grid = document.getElementById('likes-grid');
+                if (!section || !grid) return;
+                if (!initData) {
+                    section.style.display = 'none';
+                    return;
+                }
+                try {
+                    const data = await apiRequest('/api/likes');
+                    incomingLikes = Array.isArray(data && data.items) ? data.items : [];
+                    const isPremium = Boolean(profileData.premium);
+                    const title = document.getElementById('likes-section-title');
+                    const note = document.getElementById('likes-section-note');
+                    if (title) title.textContent = T.likesTitle || 'Кому понравился ваш профиль';
+                    if (note) note.textContent = isPremium
+                        ? (T.likesPremiumNote || 'У вас Premium: фото и имя видны полностью.')
+                        : (T.likesBlurNote || 'Без Premium фото скрыто, но вы всё равно можете лайкнуть в ответ.');
+
+                    if (!incomingLikes.length) {
+                        section.style.display = 'none';
+                        grid.innerHTML = '<div class="muted-line">Пока нет новых лайков</div>';
+                        return;
+                    }
+
+                    section.style.display = '';
+                    grid.innerHTML = incomingLikes.map((item) => {
+                        const photoStyle = item.primary_photo_url
+                            ? `style="background-image:url('${String(item.primary_photo_url).replace(/'/g, '&#39;')}');"`
+                            : '';
+                        const isBlurred = !isPremium;
+                        const displayName = isBlurred ? (T.likesHiddenName || 'Кто-то') : (item.first_name || 'User');
+                        const metaText = item.swipe_type === 'superlike'
+                            ? (T.likesSuperlike || 'Поставил суперлайк')
+                            : (T.likesLike || 'Поставил лайк');
+                        const city = item.city ? ` • ${item.city}` : '';
+                        return `
+                            <div class="like-card ${isBlurred ? 'blurred' : ''}">
+                                <div class="like-card-photo" ${photoStyle}></div>
+                                ${isBlurred ? `<div class="like-card-premium-mask">${T.likesPremiumMask || 'Фото скрыто'}</div>` : ''}
+                                <div class="like-card-overlay">
+                                    <div class="like-card-name">${displayName}</div>
+                                    <div class="like-card-meta">${metaText}${city}</div>
+                                    <button class="like-card-action" type="button" data-like-user-id="${item.user_id}" data-like-user-name="${String(item.first_name || 'User').replace(/"/g, '&quot;')}">${T.likeBackButton || '❤️ Лайк в ответ'}</button>
+                                </div>
+                            </div>
+                        `;
+                    }).join('');
+
+                    grid.querySelectorAll('.like-card-action').forEach((btn) => {
+                        btn.addEventListener('click', () => {
+                            const userId = Number(btn.getAttribute('data-like-user-id'));
+                            const userName = btn.getAttribute('data-like-user-name') || 'User';
+                            likeBackFromCard(userId, userName);
+                        });
+                    });
+                } catch (e) {
+                    section.style.display = 'none';
                 }
             }
 
@@ -3319,6 +3504,7 @@
                     updateUserCard();
                 }
                 if (screenName === 'matches') {
+                    await loadLikesFromApi();
                     await loadMatchesFromApi();
                 }
                 if (screenName === 'messages') {
@@ -3784,6 +3970,7 @@
                 updateUserCard();
                 refreshNotificationSummary();
                 loadMatchesFromApi();
+                loadLikesFromApi();
                 loadMessagesInboxFromApi();
                 loadGamingRoomsFromApi();
                 
@@ -3793,11 +3980,20 @@
                     ? tg.startParam.replace('reply_', '')
                     : '';
                 const matchId = parseInt(replyMatchParam || startParamMatchId, 10);
+                const initialTab = String(query.get('tab') || '').toLowerCase();
                 if (!isNaN(matchId) && matchId > 0) {
                     setTimeout(() => {
                         openMessageThread(matchId);
                         showScreen('messages');
                     }, 500);
+                } else if (initialTab === 'matches' || initialTab === 'likes') {
+                    setTimeout(() => {
+                        showScreen('matches');
+                    }, 250);
+                } else if (initialTab === 'profile' || initialTab === 'gaming' || initialTab === 'messages' || initialTab === 'discovery') {
+                    setTimeout(() => {
+                        showScreen(initialTab);
+                    }, 250);
                 }
                 
                 setInterval(() => {
