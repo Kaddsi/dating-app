@@ -750,6 +750,26 @@
             cursor: pointer;
         }
 
+        #gaming-thread .thread-header {
+            margin-top: -6px;
+        }
+
+        .filters-toolbar {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .filters-back-btn {
+            border: 1px solid rgba(205, 132, 167, 0.4);
+            background: rgba(255, 255, 255, 0.08);
+            color: #f7cade;
+            border-radius: 10px;
+            padding: 6px 10px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
         .thread-messages {
             display: flex;
             flex-direction: column;
@@ -1967,6 +1987,9 @@
         
         <!-- Экран фильтров -->
         <div id="filters-screen" class="screen">
+            <div class="filters-toolbar">
+                <button class="filters-back-btn" type="button" onclick="showScreen('discovery')">← Назад</button>
+            </div>
             <h2 style="color: #ffe7f2; font-size: 22px; margin-bottom: 20px;">Фильтры поиска</h2>
 
             <div class="form-card">
@@ -3547,8 +3570,11 @@
             }
 
             function updateHeaderVisibility(screenName) {
-                const hideHeader = screenName === 'matches' || screenName === 'messages';
-                document.body.classList.toggle('header-hidden', hideHeader);
+                document.body.classList.remove('header-hidden');
+                const filterBtn = document.querySelector('.header .header-btn');
+                if (filterBtn) {
+                    filterBtn.style.display = (screenName === 'discovery') ? 'inline-flex' : 'none';
+                }
             }
 
             window.showScreen = async function(screenName, sourceBtn) {
@@ -3756,6 +3782,33 @@
                 }
                 const photoArea = document.querySelector('.photo-area');
                 applyPhotoToElement(photoArea, (user.photos_urls || [])[0] || user.primary_photo_url);
+
+                const indicators = document.querySelectorAll('.photo-indicator');
+                const prevBtn = document.getElementById('photo-prev');
+                const nextBtn = document.getElementById('photo-next');
+                const seen = new Set();
+                const photos = [];
+                const addPhoto = (url) => {
+                    const v = String(url || '').trim();
+                    if (!v || seen.has(v)) return;
+                    seen.add(v);
+                    photos.push(v);
+                };
+                addPhoto(user.primary_photo_url);
+                if (Array.isArray(user.photos_urls)) user.photos_urls.forEach(addPhoto);
+
+                indicators.forEach((ind, idx) => {
+                    if (idx < photos.length) {
+                        ind.style.display = '';
+                        ind.classList.toggle('active', idx === 0);
+                    } else {
+                        ind.style.display = 'none';
+                        ind.classList.remove('active');
+                    }
+                });
+
+                if (prevBtn) prevBtn.style.display = 'none';
+                if (nextBtn) nextBtn.style.display = 'none';
             };
 
             window.swipe = function(type) {
