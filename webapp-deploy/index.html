@@ -2415,6 +2415,22 @@
             }
         }
         
+        window.applyPhotoToElement = function(element, photoUrl) {
+            if (!element) return;
+            const placeholder = element.querySelector('.photo-placeholder');
+            if (photoUrl) {
+                element.style.backgroundImage = `url("${String(photoUrl).replace(/"/g, '&quot;')}")`;
+                element.style.backgroundSize = 'cover';
+                element.style.backgroundPosition = 'center';
+                if (placeholder) placeholder.style.display = 'none';
+                return;
+            }
+            element.style.backgroundImage = '';
+            element.style.backgroundSize = '';
+            element.style.backgroundPosition = '';
+            if (placeholder) placeholder.style.display = '';
+        };
+
         function normalizePhotoValue(value) {
             if (!value) return '';
             if (typeof value === 'string') {
@@ -2465,7 +2481,7 @@
                             // ignore parse error
                         }
                     }
-                    if (text.includes(',')) {
+                    if (text.includes(',') && !text.startsWith('data:image/')) {
                         text.split(',').map(s => s.trim()).forEach(push);
                         return;
                     }
@@ -2531,7 +2547,7 @@
             
             if (!photoArea) return;
             if (!user) {
-                applyPhotoToElement(photoArea, null);
+                window.applyPhotoToElement(photoArea, null);
                 if (indicatorsWrap) indicatorsWrap.style.display = 'none';
                 indicators.forEach((ind) => {
                     ind.style.display = 'none';
@@ -2549,7 +2565,7 @@
             
             // Отображаем текущее фото
             const currentPhoto = allPhotos[currentPhotoIndex] || null;
-            applyPhotoToElement(photoArea, currentPhoto);
+            window.applyPhotoToElement(photoArea, currentPhoto);
 
             if (indicatorsWrap) indicatorsWrap.style.display = allPhotos.length > 1 ? 'flex' : 'none';
             
@@ -2931,22 +2947,6 @@
             function getCurrentUser() {
                 if (!tg || !tg.initDataUnsafe || !tg.initDataUnsafe.user) return null;
                 return tg.initDataUnsafe.user;
-            }
-
-            function applyPhotoToElement(element, photoUrl) {
-                if (!element) return;
-                const placeholder = element.querySelector('.photo-placeholder');
-                if (photoUrl) {
-                    element.style.backgroundImage = `url("${String(photoUrl).replace(/"/g, '&quot;')}")`;
-                    element.style.backgroundSize = 'cover';
-                    element.style.backgroundPosition = 'center';
-                    if (placeholder) placeholder.style.display = 'none';
-                    return;
-                }
-                element.style.backgroundImage = '';
-                element.style.backgroundSize = '';
-                element.style.backgroundPosition = '';
-                if (placeholder) placeholder.style.display = '';
             }
 
             async function apiRequest(path, options) {
@@ -3793,7 +3793,7 @@
                 if (genderEl) genderEl.textContent = profileData.gender === 'male' ? T.genderMale : T.genderFemale;
                 if (premiumEl) premiumEl.textContent = profileData.premium ? T.premiumYes : T.premiumNo;
                 const profilePhoto = document.querySelector('#profile-screen .profile-photo');
-                applyPhotoToElement(profilePhoto, profileData.primary_photo_url || (profileData.photos_urls || [])[0]);
+                window.applyPhotoToElement(profilePhoto, profileData.primary_photo_url || (profileData.photos_urls || [])[0]);
             }
 
             function fileToDataUrl(file) {
@@ -3905,7 +3905,7 @@
                 }
                 const photoArea = document.getElementById('photo-area-main');
                 const initialPhotos = buildUserPhotos(user);
-                applyPhotoToElement(photoArea, initialPhotos[0] || null);
+                window.applyPhotoToElement(photoArea, initialPhotos[0] || null);
                 currentPhotoIndex = 0;
                 try {
                     updatePhotoDisplay();
