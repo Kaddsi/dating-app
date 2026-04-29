@@ -1760,9 +1760,6 @@
                             <path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd"/>
                         </svg>
                     </button>
-                    <svg class="photo-placeholder" fill="currentColor" viewBox="0 0 20 20">
-                        <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"/>
-                    </svg>
                     <button class="photo-nav-btn next" id="photo-next" style="display: none;">
                         <svg fill="currentColor" viewBox="0 0 20 20">
                             <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"/>
@@ -1779,7 +1776,7 @@
                         </svg>
                     </div>
                     
-                    <p class="user-bio" id="user-bio">Загрузка анкеты...</p>
+                    <p class="user-bio" id="user-bio"></p>
                     
                     <div class="user-location">
                         <svg fill="currentColor" viewBox="0 0 20 20">
@@ -1791,7 +1788,7 @@
                     </div>
                     
                     <div class="interests" id="user-interests">
-                        <span class="interest-tag">Профили загружаются</span>
+                        
                     </div>
                 </div>
             </div>
@@ -1832,7 +1829,7 @@
                 <h3 id="likes-section-title" class="likes-section-title">Кому понравился ваш профиль</h3>
                 <p id="likes-section-note" class="likes-section-note">Без Premium фото скрыто, но вы всё равно можете лайкнуть в ответ.</p>
                 <div id="likes-grid" class="likes-grid">
-                    <div class="muted-line">Загрузка лайков...</div>
+                    
                 </div>
             </div>
         </div>
@@ -1840,14 +1837,14 @@
         <!-- Экран мэтчей -->
         <div id="matches-screen" class="screen">
             <div class="matches-grid">
-                <div class="muted-line">Загрузка мэтчей...</div>
+                
             </div>
         </div>
 
         <!-- Экран сообщений -->
         <div id="messages-screen" class="screen">
             <div id="messages-list" class="messages-list">
-                <div class="muted-line">Загрузка сообщений...</div>
+                
             </div>
 
             <div id="thread-wrap" class="thread-wrap">
@@ -1896,7 +1893,7 @@
             </div>
 
             <div id="gaming-rooms-list" class="rooms-grid">
-                <div class="muted-line">Загрузка игровых комнат...</div>
+                
             </div>
 
             <div id="gaming-thread" class="gaming-thread">
@@ -1917,14 +1914,11 @@
         <div id="profile-screen" class="screen">
             <div class="profile-header">
                 <div class="profile-photo" id="profile-photo-click" title="Нажмите, чтобы добавить фото">
-                    <svg fill="currentColor" viewBox="0 0 20 20">
-                        <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"/>
-                    </svg>
                 </div>
                 <div class="profile-photo-hint">Нажмите на фото, чтобы добавить еще</div>
                 <input class="profile-photo-input" id="profile-photo-input" type="file" accept="image/*" multiple>
                 <div class="profile-name">Профиль</div>
-                <div class="profile-bio">Данные загружаются...</div>
+                <div class="profile-bio"></div>
             </div>
             
             <div class="profile-section">
@@ -1954,7 +1948,7 @@
             <div class="profile-section">
                 <div class="section-title">✨ Интересы</div>
                 <div class="interests">
-                    <span class="interest-tag">Заполните профиль</span>
+                    
                 </div>
             </div>
             
@@ -2027,38 +2021,38 @@
         
         <!-- Нижняя навигация -->
         <div class="bottom-nav">
-            <div class="nav-btn active" onclick="showScreen('discovery')">
+            <div class="nav-btn active" data-screen="discovery" onclick="showScreen('discovery', this)">
                 <svg fill="currentColor" viewBox="0 0 20 20">
                     <path d="M10.394 2.08a1 1 0 00-.788 0l-7 3a1 1 0 000 1.84L5.25 8.051a.999.999 0 01.356-.257l4-1.714a1 1 0 11.788 1.838L7.667 9.088l1.94.831a1 1 0 00.787 0l7-3a1 1 0 000-1.838l-7-3zM3.31 9.397L5 10.12v4.102a8.969 8.969 0 00-1.05-.174 1 1 0 01-.89-.89 11.115 11.115 0 01.25-3.762zM9.3 16.573A9.026 9.026 0 007 14.935v-3.957l1.818.78a3 3 0 002.364 0l5.508-2.361a11.026 11.026 0 01.25 3.762 1 1 0 01-.89.89 8.968 8.968 0 00-5.35 2.524 1 1 0 01-1.4 0zM6 18a1 1 0 001-1v-2.065a8.935 8.935 0 00-2-.712V17a1 1 0 001 1z"/>
                 </svg>
                 <span>Поиск</span>
             </div>
-            <div class="nav-btn" onclick="showScreen('matches')">
+            <div class="nav-btn" data-screen="matches" onclick="showScreen('matches', this)">
                 <svg fill="currentColor" viewBox="0 0 20 20">
                     <path fill-rule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clip-rule="evenodd"/>
                 </svg>
                 <span>Мэтчи</span>
             </div>
-            <div class="nav-btn" onclick="showScreen('likes')">
+            <div class="nav-btn" data-screen="likes" onclick="showScreen('likes', this)">
                 <svg fill="currentColor" viewBox="0 0 20 20">
                     <path fill-rule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clip-rule="evenodd"/>
                 </svg>
                 <span>Лайки</span>
                 <div class="badge" id="likes-badge" style="display: none;">0</div>
             </div>
-            <div class="nav-btn" onclick="showScreen('messages')">
+            <div class="nav-btn" data-screen="messages" onclick="showScreen('messages', this)">
                 <svg fill="currentColor" viewBox="0 0 20 20">
                     <path d="M2 5a2 2 0 012-2h12a2 2 0 012 2v7a2 2 0 01-2 2H8l-4 3v-3H4a2 2 0 01-2-2V5z"/>
                 </svg>
                 <span>Сообщения</span>
             </div>
-            <div class="nav-btn" onclick="showScreen('gaming')">
+            <div class="nav-btn" data-screen="gaming" onclick="showScreen('gaming', this)">
                 <svg fill="currentColor" viewBox="0 0 20 20">
                     <path d="M6 6a2 2 0 114 0v1h4a2 2 0 012 2v4a3 3 0 01-3 3H7a3 3 0 01-3-3V9a2 2 0 012-2h0V6zm2 0v1h1V6a1 1 0 10-2 0zM7 11a1 1 0 100 2 1 1 0 000-2zm6 0a1 1 0 100 2 1 1 0 000-2z"/>
                 </svg>
                 <span>Геймеры</span>
             </div>
-            <div class="nav-btn" onclick="showScreen('profile')">
+            <div class="nav-btn" data-screen="profile" onclick="showScreen('profile', this)">
                 <svg fill="currentColor" viewBox="0 0 20 20">
                     <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"/>
                 </svg>
@@ -3547,14 +3541,14 @@
                 // keep defaults
             }
 
-            function setNavActive(screenName) {
+            function setNavActive(screenName, sourceBtn) {
                 document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
-                const map = { discovery: 0, matches: 1, messages: 2, gaming: 3, profile: 4 };
-                const idx = map[screenName];
-                const navButtons = document.querySelectorAll('.nav-btn');
-                if (typeof idx === 'number' && navButtons[idx]) {
-                    navButtons[idx].classList.add('active');
+                if (sourceBtn && sourceBtn.classList && sourceBtn.classList.contains('nav-btn')) {
+                    sourceBtn.classList.add('active');
+                    return;
                 }
+                const navTarget = document.querySelector(`.bottom-nav .nav-btn[data-screen="${screenName}"]`);
+                if (navTarget) navTarget.classList.add('active');
             }
 
             function updateHeaderVisibility(screenName) {
@@ -3562,11 +3556,11 @@
                 document.body.classList.toggle('header-hidden', hideHeader);
             }
 
-            window.showScreen = async function(screenName) {
+            window.showScreen = async function(screenName, sourceBtn) {
                 document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
                 const screen = document.getElementById(screenName + '-screen');
                 if (screen) screen.classList.add('active');
-                setNavActive(screenName);
+                setNavActive(screenName, sourceBtn);
                 updateHeaderVisibility(screenName);
                 refreshNotificationSummary();
                 if (screenName === 'discovery') {
