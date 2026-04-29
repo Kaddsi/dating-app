@@ -1140,13 +1140,46 @@ async def create_direct_message(
             """
             SELECT id, is_active
             FROM matches
-            WHERE user1_id = $1 AND user2_id = $2
+            WHERE (user1_id = $1 AND user2_id = $2)
+               OR (user1_id = $2 AND user2_id = $1)
             """,
             u1,
             u2,
         )
+
         if not match_row or not match_row['is_active']:
-            raise HTTPException(status_code=403, detail="No active match with this user")
+            mutual_like = await conn.fetchval(
+                """
+                SELECT EXISTS (
+                    SELECT 1
+                    FROM swipes s1
+                    JOIN swipes s2
+                      ON s1.from_user_id = $2
+                     AND s1.to_user_id = $1
+                     AND s1.swipe_type IN ('like', 'superlike')
+                     AND s2.from_user_id = $1
+                     AND s2.to_user_id = $2
+                     AND s2.swipe_type IN ('like', 'superlike')
+                )
+                """,
+                current_user['id'],
+                payload.target_user_id,
+            )
+
+            if not mutual_like:
+                raise HTTPException(status_code=403, detail="No active match with this user")
+
+            match_row = await conn.fetchrow(
+                """
+                INSERT INTO matches (user1_id, user2_id, is_active)
+                VALUES ($1, $2, TRUE)
+                ON CONFLICT (user1_id, user2_id)
+                DO UPDATE SET is_active = TRUE
+                RETURNING id, is_active
+                """,
+                u1,
+                u2,
+            )
 
         inserted = await conn.fetchrow(
             """

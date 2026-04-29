@@ -4152,7 +4152,7 @@
                         });
                         refreshNotificationSummary();
                     } catch (e) {
-                        alert('Не удалось отправить сообщение');
+                        alert(e && e.message ? e.message : 'Не удалось отправить сообщение');
                     }
                     closeMatchModal();
                 });
