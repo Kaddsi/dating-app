@@ -1838,7 +1838,8 @@
         </div>
 
         <!-- Экран мэтчей -->
-
+        <div id="matches-screen" class="screen">
+            <div class="matches-grid">
                 <div class="muted-line">Загрузка мэтчей...</div>
             </div>
         </div>
@@ -2369,11 +2370,14 @@
             // Скрыть все экраны
             document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
             // Показать нужный
-            document.getElementById(screenName + '-screen').classList.add('active');
+            const nextScreen = document.getElementById(screenName + '-screen');
+            if (!nextScreen) return;
+            nextScreen.classList.add('active');
             
             // Обновить навигацию
             document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
-            if (event && event.currentTarget) event.currentTarget.classList.add('active');
+            const navTarget = document.querySelector(`.bottom-nav .nav-btn[onclick="showScreen('${screenName}')"]`);
+            if (navTarget) navTarget.classList.add('active');
             
             // Скрыть хедер на всех экранах кроме Discovery
             const header = document.querySelector('.header');
