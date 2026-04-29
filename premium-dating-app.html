@@ -2663,7 +2663,7 @@
 
             function applyPhotoToElement(element, photoUrl) {
                 if (!element) return;
-                const placeholder = element.querySelector('.photo-placeholder, svg');
+                const placeholder = element.querySelector('.photo-placeholder');
                 if (photoUrl) {
                     element.style.backgroundImage = `url("${String(photoUrl).replace(/"/g, '&quot;')}")`;
                     element.style.backgroundSize = 'cover';
