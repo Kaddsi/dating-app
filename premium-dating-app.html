@@ -2148,6 +2148,21 @@
         const users = usersByLang[LANG] || usersByLang.en;
         let currentUserIndex = 0;
         let currentPhotoIndex = 0;
+        const initialUserCardTemplate = (() => {
+            const card = document.querySelector('.user-card');
+            return card ? card.innerHTML : '';
+        })();
+
+        function restoreUserCardShell() {
+            const card = document.querySelector('.user-card');
+            if (!card || card.querySelector('#user-name') || !initialUserCardTemplate) return card;
+            card.innerHTML = initialUserCardTemplate;
+            const prevBtn = document.getElementById('photo-prev');
+            const nextBtn = document.getElementById('photo-next');
+            if (prevBtn) prevBtn.onclick = prevPhoto;
+            if (nextBtn) nextBtn.onclick = nextPhoto;
+            return card;
+        }
 
         function applyLocalization() {
             document.documentElement.lang = LANG;
@@ -2303,7 +2318,8 @@
                 `;
                 return;
             }
-            
+
+            restoreUserCardShell();
             currentPhotoIndex = 0;
             const user = users[currentUserIndex];
             document.getElementById('user-name').textContent = user.name;
@@ -3475,6 +3491,7 @@
                     return;
                 }
 
+                restoreUserCardShell();
                 const user = filteredUsers[currentUserIndex];
                 const setText = (id, text) => {
                     const el = document.getElementById(id);
