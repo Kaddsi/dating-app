@@ -108,34 +108,6 @@
             height: 22px;
             color: #f3cade;
         }
-
-        .discovery-toolbar {
-            display: flex;
-            justify-content: flex-end;
-            margin: 0 0 14px;
-        }
-
-        .filters-pill {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            min-height: 42px;
-            padding: 0 14px;
-            border-radius: 999px;
-            border: 1px solid rgba(205, 132, 167, 0.34);
-            background: rgba(255, 255, 255, 0.08);
-            color: #ffe7f2;
-            font-size: 14px;
-            font-weight: 700;
-            cursor: pointer;
-            backdrop-filter: blur(12px);
-        }
-
-        .filters-pill svg {
-            width: 18px;
-            height: 18px;
-            color: #f3cade;
-        }
         
         /* Экраны */
         .screen {
@@ -1649,14 +1621,6 @@
         
         <!-- Экран Discovery -->
         <div id="discovery-screen" class="screen active">
-            <div class="discovery-toolbar">
-                <button id="open-filters-btn" class="filters-pill" type="button" onclick="showScreen('filters')">
-                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"/>
-                    </svg>
-                    <span>Фильтры</span>
-                </button>
-            </div>
             <div class="user-card">
                 <div class="photo-indicators">
                     <div class="photo-indicator active"></div>
@@ -2047,7 +2011,6 @@
             en: {
                 title: 'Premium Dating - Dating App',
                 hint: 'Swipe right to like or press ❤️',
-                filtersButton: 'Filters',
                 navDiscovery: 'Discover',
                 navMatches: 'Matches',
                 navMessages: 'Messages',
@@ -2076,7 +2039,6 @@
             ru: {
                 title: 'Premium Dating - Приложение для знакомств',
                 hint: 'Свайпните вправо для лайка или нажмите ❤️',
-                filtersButton: 'Фильтры',
                 navDiscovery: 'Поиск', navMatches: 'Мэтчи', navMessages: 'Сообщения', navGaming: 'Геймеры', navProfile: 'Профиль',
                 gamingTitle: 'Комната геймеров',
                 gamingSubtitle: 'Ищите тиммейтов для катки, собирайте пати и общайтесь без токсика.',
@@ -2101,7 +2063,6 @@
             uk: {
                 title: 'Premium Dating - Додаток для знайомств',
                 hint: 'Свайпніть вправо для лайка або натисніть ❤️',
-                filtersButton: 'Фільтри',
                 navDiscovery: 'Пошук', navMatches: 'Метчі', navMessages: 'Повідомлення', navGaming: 'Геймери', navProfile: 'Профіль',
                 gamingTitle: 'Кімната геймерів',
                 gamingSubtitle: 'Шукайте тіммейтів, збирайте паті та спілкуйтеся без токсичності.',
@@ -2126,7 +2087,6 @@
             cs: {
                 title: 'Premium Dating - Seznamovací aplikace',
                 hint: 'Táhni doprava pro like nebo stiskni ❤️',
-                filtersButton: 'Filtry',
                 navDiscovery: 'Objevování', navMatches: 'Shody', navMessages: 'Zprávy', navGaming: 'Hráči', navProfile: 'Profil',
                 gamingTitle: 'Herní místnost',
                 gamingSubtitle: 'Najdi spoluhráče, slož partu a komunikuj bez toxicity.',
@@ -2151,7 +2111,6 @@
             pl: {
                 title: 'Premium Dating - Aplikacja randkowa',
                 hint: 'Przesuń w prawo, aby polubić lub naciśnij ❤️',
-                filtersButton: 'Filtry',
                 navDiscovery: 'Odkrywaj', navMatches: 'Matche', navMessages: 'Wiadomości', navGaming: 'Gracze', navProfile: 'Profil',
                 gamingTitle: 'Pokój graczy',
                 gamingSubtitle: 'Znajdź teammate’ów, zbierz party i rozmawiaj bez toksyczności.',
@@ -2196,9 +2155,6 @@
 
             const hint = document.querySelector('.hint-text');
             if (hint) hint.textContent = T.hint;
-
-            const openFiltersLabel = document.querySelector('#open-filters-btn span');
-            if (openFiltersLabel) openFiltersLabel.textContent = T.filtersButton;
 
             const nav = document.querySelectorAll('.bottom-nav .nav-btn span');
             if (nav.length >= 5) {
