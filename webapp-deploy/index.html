@@ -185,16 +185,16 @@
             transform: translateY(-50%);
             width: 40px;
             height: 40px;
-            background: rgba(255, 255, 255, 0.72);
+            background: rgba(255, 255, 255, 0.88);
             backdrop-filter: blur(8px);
-            border: 1px solid rgba(244, 181, 196, 0.55);
+            border: 1px solid rgba(244, 181, 196, 0.85);
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
             cursor: pointer;
             transition: all 0.3s ease;
-            z-index: 10;
+            z-index: 20;
             color: #7a3f56;
         }
         
@@ -2448,9 +2448,45 @@
                 seen.add(v);
                 list.push(v);
             };
+            const pushMany = (value) => {
+                if (!value) return;
+                if (Array.isArray(value)) {
+                    value.forEach(pushMany);
+                    return;
+                }
+                if (typeof value === 'string') {
+                    const text = value.trim();
+                    if (!text) return;
+                    if ((text.startsWith('[') && text.endsWith(']')) || (text.startsWith('{') && text.endsWith('}'))) {
+                        try {
+                            pushMany(JSON.parse(text));
+                            return;
+                        } catch (e) {
+                            // ignore parse error
+                        }
+                    }
+                    if (text.includes(',')) {
+                        text.split(',').map(s => s.trim()).forEach(push);
+                        return;
+                    }
+                    push(text);
+                    return;
+                }
+                if (typeof value === 'object') {
+                    pushMany(value.photos_urls);
+                    pushMany(value.photo_urls);
+                    pushMany(value.gallery);
+                    pushMany(value.photos);
+                    push(value.primary_photo_url || value.photo_url || value.url || value.file_url || value.src || value.path || '');
+                }
+            };
             if (!user) return list;
+            pushMany(user.photosRaw);
             push(user.primary_photo_url);
-            if (Array.isArray(user.photos_urls)) user.photos_urls.forEach(push);
+            pushMany(user.photos_urls);
+            pushMany(user.photo_urls);
+            pushMany(user.gallery);
+            pushMany(user.photos);
             return list.slice(0, 4);
         }
 
@@ -3000,12 +3036,13 @@
                         return;
                     }
                     const mapped = data.users.map((u) => ({
+                        photosRaw: u,
                         id: u.id,
                         name: u.first_name || 'User',
                         age: Number(u.age || 25),
                         bio: u.bio || '',
-                        photos_urls: parsePhotoList(u.photos_urls),
-                        primary_photo_url: u.primary_photo_url || '',
+                        photos_urls: parsePhotoList(u.photos_urls || u.photo_urls || u.gallery || u.photos),
+                        primary_photo_url: u.primary_photo_url || u.photo_url || '',
                         city: u.city || '-',
                         distance: Number(u.distance || 1),
                         interests: Array.isArray(u.interests) && u.interests.length ? u.interests : ['💬 Chat'],
