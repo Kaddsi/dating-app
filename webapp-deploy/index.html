@@ -2954,6 +2954,30 @@
                     return;
                 }
                 try {
+                    const parsePhotoList = (raw) => {
+                        if (Array.isArray(raw)) return raw;
+                        if (typeof raw === 'string') {
+                            const text = raw.trim();
+                            if (!text) return [];
+                            if ((text.startsWith('[') && text.endsWith(']')) || (text.startsWith('{') && text.endsWith('}'))) {
+                                try {
+                                    const parsed = JSON.parse(text);
+                                    if (Array.isArray(parsed)) return parsed;
+                                    if (parsed && Array.isArray(parsed.photos_urls)) return parsed.photos_urls;
+                                } catch (e) {
+                                    return [];
+                                }
+                            }
+                            return [text];
+                        }
+                        if (raw && typeof raw === 'object') {
+                            if (Array.isArray(raw.photos_urls)) return raw.photos_urls;
+                            if (typeof raw.url === 'string') return [raw.url];
+                            if (typeof raw.photo_url === 'string') return [raw.photo_url];
+                        }
+                        return [];
+                    };
+
                     const qs = new URLSearchParams();
                     qs.set('limit', '50');
                     qs.set('min_age', String(Math.max(18, Number(filters.minAge || 18))));
@@ -2980,7 +3004,7 @@
                         name: u.first_name || 'User',
                         age: Number(u.age || 25),
                         bio: u.bio || '',
-                        photos_urls: Array.isArray(u.photos_urls) ? u.photos_urls : [],
+                        photos_urls: parsePhotoList(u.photos_urls),
                         primary_photo_url: u.primary_photo_url || '',
                         city: u.city || '-',
                         distance: Number(u.distance || 1),
