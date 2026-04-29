@@ -2702,7 +2702,16 @@
                     return;
                 }
                 try {
-                    const data = await apiRequest('/api/discover?limit=20');
+                    const qs = new URLSearchParams();
+                    qs.set('limit', '50');
+                    qs.set('min_age', String(Math.max(18, Number(filters.minAge || 18))));
+                    qs.set('max_age', String(Math.max(18, Number(filters.maxAge || 99))));
+                    qs.set('gender', filters.gender || 'any');
+                    qs.set('premium', filters.premium || 'any');
+                    if (filters.country) qs.set('country', filters.country);
+                    if (filters.city) qs.set('city', filters.city);
+
+                    const data = await apiRequest(`/api/discover?${qs.toString()}`);
                     if (!data || !Array.isArray(data.users)) {
                         users.splice(0, users.length);
                         currentUserIndex = 0;
@@ -3342,9 +3351,10 @@
             }
 
             function matchFilter(u) {
+                const normalize = (v) => String(v || '').trim().toLowerCase();
                 if (u.age < filters.minAge || u.age > filters.maxAge) return false;
-                if (filters.country && !String(u.country || '').toLowerCase().includes(filters.country)) return false;
-                if (filters.city && !String(u.city || '').toLowerCase().includes(filters.city)) return false;
+                if (filters.country && normalize(u.country) !== normalize(filters.country)) return false;
+                if (filters.city && normalize(u.city) !== normalize(filters.city)) return false;
                 if (filters.gender !== 'any' && u.gender !== filters.gender) return false;
                 if (filters.premium === 'premium' && !u.premium) return false;
                 if (filters.premium === 'regular' && u.premium) return false;

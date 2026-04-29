@@ -19,7 +19,7 @@ import asyncpg
 from aiogram import Bot
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, WebAppInfo
 from dotenv import load_dotenv
-from fastapi import Depends, FastAPI, Header, HTTPException, Request
+from fastapi import Depends, FastAPI, Header, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
@@ -90,9 +90,9 @@ VOICE_PREFIX = "__voice__:"
 GIFT_PREFIX = "__gift__:"
 MAX_VOICE_PAYLOAD_LEN = 900_000
 STARS_GIFT_CATALOG: dict[str, dict[str, Any]] = {
-    "rose": {"title": "Rose", "stars": 25, "description": "A lovely rose for your match."},
-    "heart": {"title": "Heart", "stars": 50, "description": "A warm heart gift."},
-    "crown": {"title": "Crown", "stars": 100, "description": "A premium crown gift."},
+    "rose": {"title": "Rose", "stars": 10, "description": "A lovely rose for your match."},
+    "heart": {"title": "Heart", "stars": 15, "description": "A warm heart gift."},
+    "crown": {"title": "Crown", "stars": 25, "description": "A premium crown gift."},
 }
 
 PROFANITY_MARKERS = {
@@ -580,15 +580,27 @@ async def validate_auth(request: Request):
 @app.get("/api/discover")
 async def get_discover_users(
     limit: int = 20,
+    city: str | None = Query(default=None),
+    country: str | None = Query(default=None),
+    min_age: int | None = Query(default=None, ge=18, le=100),
+    max_age: int | None = Query(default=None, ge=18, le=100),
+    gender: str = Query(default="any", pattern="^(any|male|female)$"),
+    premium: str = Query(default="any", pattern="^(any|premium|regular)$"),
     current_user: dict = Depends(get_current_user),
     pool: asyncpg.Pool = Depends(get_db_pool),
 ):
     """Get all active users by default, with optional filters (age, gender, location, premium)."""
     safe_limit = max(1, min(limit, 50))
     looking_for = (current_user.get('looking_for') or 'everyone').strip().lower()
-    age_min = int(current_user.get('age_min') or 18)
-    age_max = int(current_user.get('age_max') or 99)
+    age_min = int(min_age or current_user.get('age_min') or 18)
+    age_max = int(max_age or current_user.get('age_max') or 99)
     max_distance = int(current_user.get('max_distance') or 50)
+    city_norm = (city or '').strip().lower() or None
+    country_norm = (country or '').strip().lower() or None
+    if gender == 'any':
+        gender_filter = looking_for if looking_for in {'male', 'female'} else 'any'
+    else:
+        gender_filter = gender
     if age_min > age_max:
         age_min, age_max = age_max, age_min
     max_distance = max(1, min(max_distance, 500))
@@ -603,9 +615,22 @@ async def get_discover_users(
             match_key = _mock_match_key(int(current_user['id']), int(user_id))
             if mock_matches.get(match_key, {}).get('is_active'):
                 continue
-            # Apply optional gender filter
-            if looking_for != 'everyone' and profile.get('gender'):
-                if (profile.get('gender') or '').strip().lower() != looking_for:
+            profile_city = (profile.get('city') or '').strip().lower()
+            profile_country = (profile.get('country') or '').strip().lower()
+            profile_gender = (profile.get('gender') or '').strip().lower()
+            profile_premium = bool(profile.get('is_premium', False))
+            # Apply filters in mock mode too
+            if gender_filter != 'any' and profile_gender and profile_gender != gender_filter:
+                continue
+            if city_norm and profile_city != city_norm:
+                continue
+            if country_norm and profile_country != country_norm:
+                continue
+            if premium == 'premium' and not profile_premium:
+                continue
+            if premium == 'regular' and profile_premium:
+                continue
+            if age_min > 25 or age_max < 25:
                     continue
             candidate_users.append(
                 {
@@ -619,6 +644,7 @@ async def get_discover_users(
                     "country": profile.get('country') or '',
                     "gender": profile.get('gender') or 'unknown',
                     "is_premium": bool(profile.get('is_premium', False)),
+                    "is_premium": profile_premium,
                     "distance": None,
                 }
             )
@@ -656,7 +682,16 @@ async def get_discover_users(
         WHERE u.id != $1
             AND u.is_active = TRUE
             AND u.is_blocked = FALSE
-            AND ($4 = 'everyone' OR u.gender = $4)
+            AND u.profile_completed = TRUE
+            AND ($4 = 'any' OR u.gender = $4)
+            AND EXTRACT(YEAR FROM AGE(u.birthdate)) BETWEEN $5 AND $6
+            AND ($7::text IS NULL OR LOWER(TRIM(COALESCE(u.city, ''))) = $7)
+            AND ($8::text IS NULL OR LOWER(TRIM(COALESCE(u.country, ''))) = $8)
+            AND (
+                $9 = 'any'
+                OR ($9 = 'premium' AND u.is_premium = TRUE)
+                OR ($9 = 'regular' AND COALESCE(u.is_premium, FALSE) = FALSE)
+            )
             AND NOT EXISTS (
                 SELECT 1 FROM matches m
                 WHERE m.is_active = TRUE
@@ -678,7 +713,12 @@ async def get_discover_users(
             current_user['id'],
             current_user.get('location'),
             safe_limit,
-            looking_for,
+            gender_filter,
+            age_min,
+            age_max,
+            city_norm,
+            country_norm,
+            premium,
         )
 
     return {
