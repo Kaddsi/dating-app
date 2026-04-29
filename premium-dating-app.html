@@ -2437,8 +2437,19 @@
             if (!user) return;
             const seen = new Set();
             const allPhotos = [];
+            const normalizePhotoUrl = (value) => {
+                if (!value) return '';
+                if (typeof value === 'string') return value.trim();
+                if (typeof value === 'object') {
+                    const raw = value.url || value.photo_url || value.file_url || value.src || '';
+                    return typeof raw === 'string' ? raw.trim() : '';
+                }
+                return '';
+            };
             const addPhoto = (url) => {
-                const v = String(url || '').trim();
+                const v = normalizePhotoUrl(url);
+                const valid = v.startsWith('http://') || v.startsWith('https://') || v.startsWith('data:image/') || v.startsWith('/');
+                if (!valid) return;
                 if (!v || seen.has(v)) return;
                 seen.add(v);
                 allPhotos.push(v);
@@ -2480,19 +2491,27 @@
             const photosArray = Array.isArray(user.photos_urls) ? user.photos_urls.filter(Boolean) : [];
             const primaryPhoto = user.primary_photo_url;
             const seen = new Set();
+            const normalizePhotoUrl = (value) => {
+                if (!value) return '';
+                if (typeof value === 'string') return value.trim();
+                if (typeof value === 'object') {
+                    const raw = value.url || value.photo_url || value.file_url || value.src || '';
+                    return typeof raw === 'string' ? raw.trim() : '';
+                }
+                return '';
+            };
+            const pushPhoto = (value) => {
+                const v = normalizePhotoUrl(value);
+                const valid = v.startsWith('http://') || v.startsWith('https://') || v.startsWith('data:image/') || v.startsWith('/');
+                if (!valid || seen.has(v)) return;
+                seen.add(v);
+                allPhotos.push(v);
+            };
             
             // Формируем полный список фото с основной впереди
             let allPhotos = [];
-            if (primaryPhoto && !seen.has(primaryPhoto)) {
-                seen.add(primaryPhoto);
-                allPhotos.push(primaryPhoto);
-            }
-            photosArray.forEach(p => {
-                if (!seen.has(p)) {
-                    seen.add(p);
-                    allPhotos.push(p);
-                }
-            });
+            pushPhoto(primaryPhoto);
+            photosArray.forEach(pushPhoto);
             
             // Ограничиваем 4 фото
             allPhotos = allPhotos.slice(0, 4);
